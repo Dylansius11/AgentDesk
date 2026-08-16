@@ -1,0 +1,12 @@
+{
+  "name": "contracts",
+  "private": true,
+  "description": "ProofLedger — AgentDesk's append-only, on-chain decision -> outcome ledger (Foundry).",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "snapshot": "forge snapshot",
+    "fmt": "forge fmt",
+    "fmt:check": "forge fmt --check"
+  }
+}
