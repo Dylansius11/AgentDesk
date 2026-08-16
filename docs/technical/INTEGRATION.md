@@ -139,6 +139,17 @@ KEEPER_METRICS_INTERVAL_MS=3600000  # hourly proof_metrics safety-net sweep (ERD
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_DEMO_MODE=false
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
+
+# packages/contracts (deploy scripts only — script/Deploy.s.sol, see script/README.md)
+# Distinct from apps/api's BSC_RPC_URL/BSC_TESTNET_RPC_URL above: these names
+# match foundry.toml's [rpc_endpoints]/[etherscan] aliases exactly.
+PRIVATE_KEY=                        # deployer key. NEVER a real value here — local gitignored .env only, Chapel/mainnet only
+BSC_CHAPEL_RPC_URL=
+BSC_MAINNET_RPC_URL=
+BSCSCAN_API_KEY=                    # forge script --verify
+PROOFLEDGER_ADMIN_ADDRESS=          # optional, defaults to deployer (SMART-CONTRACT.md §6)
+PROOFLEDGER_ATTESTER_ADDRESS=       # required on Chapel/mainnet — keeper's PUBLIC address, not KEEPER_ATTESTER_KEY
+MAINNET_CONFIRM=                    # must be exactly "yes" to deploy to chain 56
 ```
 
 > ⚠️ Contract addresses & exact 8004scan endpoints get pinned in Week 1 of Phase B — update this table **in the same commit** that pins them.

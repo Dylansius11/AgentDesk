@@ -18,3 +18,9 @@ docs/
 .env
 .env.*
 !.env.example
+
+# Local anvil dry-run export has no persistent chain identity — never commit it.
+# Chapel/mainnet exports (addresses.chapel.json / addresses.mainnet.json) ARE
+# meant to be committed once a real deploy happens (see exported/README.md).
+# (broadcast/*/31337/ above already covers the anvil broadcast logs.)
+exported/addresses.anvil.json

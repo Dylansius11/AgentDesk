@@ -13,22 +13,26 @@ Full design rationale: `docs/technical/SMART-CONTRACT.md`. This file is the day-
 ```
 packages/contracts/
 ├── src/ProofLedger.sol        # the ONLY original contract (append-only decision→outcome ledger)
-├── test/                       # unit + invariant + fork tests
-├── script/deploy.chapel.ts     # viem deploy (testnet first)
-├── script/deploy.mainnet.ts    # identical bytecode; requires PROOFLEDGER_DEPLOYER + explicit --yes
-└── exported/                   # ABI + addresses consumed by apps via packages/sdk (generated, committed)
+├── test/                       # unit + invariant/fuzz tests (fork tests not yet built)
+├── script/Deploy.s.sol         # single forge script, env-parameterized (anvil/Chapel/mainnet, same bytecode)
+├── script/patch-deployed-block.sh  # fixes deployedAtBlock after every deploy (see script/README.md)
+└── exported/                   # ABI + addresses consumed by apps via packages/sdk (generated; Chapel/mainnet exports committed, anvil's is gitignored)
 ```
+
+**Deploy tooling decision (2026-08-17):** one `forge script` (`Deploy.s.sol`), not separate viem `.ts` scripts — this package has zero JS/TS tooling, `foundry.toml` already carries the RPC/etherscan wiring `--verify` needs, and it dry-runs cleanly against local `anvil` (proven end-to-end: deploy → registerDecision → attestOutcome → append-only holds against the real deployed instance). See `packages/contracts/script/README.md` for the full write-up and the exact anvil dry-run transcript.
 
 ## Commands
 
 ```bash
 pnpm --filter contracts build          # forge build
 pnpm --filter contracts test           # forge test (includes append-only invariants)
-pnpm --filter contracts snapshot       # gas report; CI FAILS if registerDecision > 120k gas
-pnpm --filter contracts fork:test      # Chapel-fork end-to-end (decision → PancakeSwap swap → attestation)
-pnpm --filter contracts deploy:chapel  # deploy + verify on BscScan; writes exported/addresses.chapel.json
+pnpm --filter contracts snapshot       # gas report; CI FAILS if registerDecision > 120k gas at steady-state (SMART-CONTRACT.md §5.4)
+pnpm --filter contracts deploy:anvil   # local dry-run against a running `anvil` — no funded key needed
+pnpm --filter contracts deploy:chapel  # deploy + verify on BscScan; writes exported/addresses.chapel.json — requires PRIVATE_KEY, PROOFLEDGER_ATTESTER_ADDRESS
 pnpm --filter contracts deploy:mainnet # gated: requires MAINNET_CONFIRM=yes env
 ```
+
+`fork:test` (Chapel-fork end-to-end incl. a real PancakeSwap swap) isn't built yet — Phase B work, once a testnet deployment exists.
 
 ## Invariants that must NEVER break (CI-enforced)
 

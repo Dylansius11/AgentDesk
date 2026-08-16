@@ -14,20 +14,30 @@ day-to-day operating conventions this workspace follows.
   emission, and direct append-only regression tests.
 - `test/ProofLedger.invariant.t.sol` + `test/invariant/ProofLedgerHandler.sol` — invariant/fuzz suite
   proving the append-only guarantee across arbitrary call sequences, not just hand-written orderings.
-- `script/` — deploy scripts. **Not written yet** — deployment is a separate task once a funded
-  deployer key exists (see `docs/BUILD-PLAN.md`); see the note in that directory.
+- `script/Deploy.s.sol` — single, environment-parameterized `forge script` deploy (local anvil /
+  Chapel / mainnet — same bytecode, only `--rpc-url` + env vars change); proven end-to-end against
+  a local `anvil` instance (deploy → `registerDecision` → warp past deadline → `attestOutcome` →
+  append-only re-attest revert, all against the deployed bytecode). Real Chapel/mainnet deploy is
+  still blocked on a funded deployer key — see `script/README.md`.
+- `exported/` — `addresses.<network>.json`, written by `Deploy.s.sol` on every broadcast; generated
+  but Chapel/mainnet outputs are meant to be **committed** the moment a real deploy happens (see
+  `exported/README.md`).
 - `lib/` — `forge-std`, `openzeppelin-contracts` (git submodules, not committed as source).
 
 ## Commands
 
 ```bash
-pnpm --filter contracts build     # forge build
-pnpm --filter contracts test      # forge test (unit + invariant/fuzz)
-pnpm --filter contracts snapshot  # forge snapshot — gas report incl. registerDecision
+pnpm --filter contracts build         # forge build
+pnpm --filter contracts test          # forge test (unit + invariant/fuzz)
+pnpm --filter contracts snapshot      # forge snapshot — gas report incl. registerDecision
+pnpm --filter contracts deploy:anvil  # deploy to a local anvil instance you started yourself
+pnpm --filter contracts deploy:chapel   # needs PRIVATE_KEY + PROOFLEDGER_ATTESTER_ADDRESS (blocked — no funded key yet)
+pnpm --filter contracts deploy:mainnet  # additionally needs MAINNET_CONFIRM=yes
 ```
 
-Deploy scripts (`deploy:chapel`, `deploy:mainnet`) and Chapel fork tests are not part of this
-workspace yet — see `script/README.md`.
+See `script/README.md` for the full env var reference, the exact anvil dry-run transcript, and a
+documented Foundry gotcha (`deployedAtBlock`) the deploy scripts work around. Chapel fork tests are
+not part of this workspace yet.
 
 ## Gas discipline
 

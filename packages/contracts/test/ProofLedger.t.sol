@@ -274,7 +274,9 @@ contract ProofLedgerTest is Test {
         ledger.registerDecision(999_999, keccak256("gas-budget-check"), uint64(block.timestamp + 1 hours));
         uint256 gasUsed = gasBefore - gasleft();
         console2.log("registerDecision cold-call gas used (brand-new agentId):", gasUsed);
-        assertLe(gasUsed, 130_000, "registerDecision cold-call regressed past the documented ~124k first-registration cost");
+        assertLe(
+            gasUsed, 130_000, "registerDecision cold-call regressed past the documented ~124k first-registration cost"
+        );
     }
 
     /// @dev Pass/fail gate for SMART-CONTRACT.md 2.4's 120k budget: the
@@ -291,7 +293,11 @@ contract ProofLedgerTest is Test {
         ledger.registerDecision(1_000_000, keccak256("second-decision-same-agent"), uint64(block.timestamp + 1 hours));
         uint256 gasUsed = gasBefore - gasleft();
         console2.log("registerDecision steady-state gas used (agent's 2nd+ decision):", gasUsed);
-        assertLe(gasUsed, 120_000, "registerDecision steady-state cost exceeds the 120k gas budget from SMART-CONTRACT.md 2.4");
+        assertLe(
+            gasUsed,
+            120_000,
+            "registerDecision steady-state cost exceeds the 120k gas budget from SMART-CONTRACT.md 2.4"
+        );
     }
 
     // ── reads on missing records ─────────────────────────────────────

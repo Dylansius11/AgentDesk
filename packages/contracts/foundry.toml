@@ -9,7 +9,7 @@ optimizer_runs = 200
 solc_version = "0.8.24"
 evm_version = "cancun"
 gas_reports = ["ProofLedger"]
-fs_permissions = [{ access = "read", path = "./exported" }]
+fs_permissions = [{ access = "read-write", path = "./exported" }]
 # Meter every external call as its own isolated transaction (matches real
 # on-chain gas: no warm-slot leakage between e.g. a test's constructor call
 # and the function call being measured). Without this, gasleft()-delta

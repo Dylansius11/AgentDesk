@@ -7,6 +7,9 @@
     "test": "forge test",
     "snapshot": "forge snapshot",
     "fmt": "forge fmt",
-    "fmt:check": "forge fmt --check"
+    "fmt:check": "forge fmt --check",
+    "deploy:anvil": "forge script script/Deploy.s.sol:Deploy --rpc-url http://127.0.0.1:8545 --broadcast && ./script/patch-deployed-block.sh anvil",
+    "deploy:chapel": "forge script script/Deploy.s.sol:Deploy --rpc-url bsc_chapel --broadcast --verify && ./script/patch-deployed-block.sh chapel",
+    "deploy:mainnet": "forge script script/Deploy.s.sol:Deploy --rpc-url bsc_mainnet --broadcast --verify && ./script/patch-deployed-block.sh mainnet"
   }
 }
