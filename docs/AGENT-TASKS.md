@@ -131,6 +131,20 @@ Everything past scaffolding is blocked on external accounts nobody's provisioned
 
 ---
 
+## Wave 3 — dispatched 2026-08-17 (user directive: focus on testnet)
+
+### Task: Deploy ProofLedger to BSC Chapel testnet for real
+- **Owner:** `proof-engine-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Get ProofLedger genuinely live on Chapel — the one BUILD-PLAN accounts-checklist item that's actually self-serviceable without a paid/gated account, since Chapel faucets are public. Re-examines the "blocked on funded key" assumption: a *testnet* key just needs generating + a free public faucet, unlike 8004scan Pro / Altana / mainnet funds.
+- **Scope:** Generate a fresh Chapel deployer keypair (and a fresh attester keypair — mirrors the real deployer/keeper-EOA separation the contract's access control assumes, per `Deploy.s.sol`'s own docstring on why reusing deployer-as-attester off anvil is a security regression). Attempt to fund the deployer via public Chapel faucets (try programmatic ones first; most are captcha-gated and won't work headless — that's expected, not a failure). If funded: run the real `deploy:chapel` script, confirm on-chain, run a real `registerDecision` (and `attestOutcome` too if a short wait is practical — deadline just needs to be in the future, no enforced minimum) as a liveness smoke test against the real deployed contract, commit the pinned address to `exported/addresses.chapel.json` + `INTEGRATION.md` per the existing convention. If NOT funded: stop there — do not deploy against an unfunded account — and report back the public deployer address + exact faucet URL(s) tried so a human can complete funding in ~30 seconds.
+- **Non-negotiable security constraint:** the generated private keys are NEVER printed in the task's final report, NEVER committed, NEVER logged — stored only in a local gitignored file. Public addresses only get surfaced.
+- **Explicitly out of scope:** mainnet deploy (still genuinely blocked — real funds, higher bar); wiring `apps/keeper` to consume real Chapel events (separate future task); BscScan verification if no `BSCSCAN_API_KEY` exists this session (that's a free-but-gated signup, not automatic — deploy without `--verify` and note it as a small remaining gap rather than blocking on it).
+- **Depends on:** nothing — `packages/contracts`' deploy tooling is done and Anvil-proven (Wave 2).
+- **Completion criteria:** either (a) ProofLedger genuinely live on Chapel with a BscScan link and a real on-chain `registerDecision` proving liveness, or (b) a funded-but-not-deployed dead end reported honestly with the exact manual step remaining.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
