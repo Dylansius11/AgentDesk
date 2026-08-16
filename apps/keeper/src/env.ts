@@ -29,6 +29,18 @@ const EnvSchema = z.object({
   PROOFLEDGER_ADDRESS_MAINNET: z.string().min(1).optional(),
   PROOFLEDGER_ADDRESS_TESTNET: z.string().min(1).optional(),
 
+  /**
+   * New var (Wave 4): the block ProofLedger was deployed at (mirrors
+   * exported/addresses.<network>.json's `deployedAtBlock`, see
+   * packages/contracts/script/README.md's patch-deployed-block.sh note).
+   * jobs/indexer.ts starts its getContractEvents scan here instead of block
+   * 0 — on a real chain, re-scanning from genesis on every cold start would
+   * be slow and pointless (ProofLedger didn't exist before this block).
+   * String, not bigint, at the env layer — parsed with BigInt() where used,
+   * same reasoning as primitives.ts's uint256-as-string convention.
+   */
+  PROOFLEDGER_DEPLOY_BLOCK: z.string().optional(),
+
   /** ProofLedger ATTESTER role key — the sole privileged secret we operate. Never logged. */
   KEEPER_ATTESTER_KEY: z.string().min(1).optional(),
 
