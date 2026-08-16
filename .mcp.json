@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bnbchain-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bnb-chain/mcp@latest"],
+      "env": {
+        "PRIVATE_KEY": ""
+      }
+    }
+  }
+}
