@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - agents/*
+
+# sharp is Next.js's image-optimization native dep — allow its install script
+allowBuilds:
+  esbuild: true
+  sharp: true
