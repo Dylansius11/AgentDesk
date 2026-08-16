@@ -1,0 +1,140 @@
+# AgentDesk — BNB Chain Integration Map
+
+| | |
+|---|---|
+| **Version** | 1.0 · 2026-08-16 |
+| **Contract law** | Every integration here maps to a judged criterion. The depth of *official-stack usage* is itself a scoring surface (Winner DNA #2). |
+| **Living doc** | Any endpoint/env var/address change updates this file in the same commit as the code. |
+
+**Status legend:** 🔴 not started · 🟡 in progress · 🟢 done · ⚫ mocked (Phase A stub)
+
+---
+
+## Master table
+
+| # | Integration | What it gives us | Phase | Status | Judging surface |
+|---|---|---|---|---|---|
+| I1 | ERC-8004 registry | Agent identity & discovery (200k+ agents on BSC) | B | 🔴 | Agent Diversity |
+| I2 | 8004scan API (AltLayer) | Structured agent data feed (identity, capability, reputation, feedback) | B | 🔴 | Data Quality |
+| I3 | **ProofLedger (ours)** | Verified track records — the moat | B | 🔴 | Data Quality + TermiX "track record" |
+| I4 | ERC-8183 escrow jobs | Trustless hire: pay on attested completion | B | 🔴 | Functionality + Altana bonus |
+| I5 | x402 payments (USD1) | Per-task money flow incl. 3% protocol fee | B | 🔴 | Real-world usage |
+| I6 | Altana sessions & Keystore | Spend caps, allowlists, expiry, one-tx revoke | B | 🔴 | Altana track (50k XP) |
+| I7 | Altana skills (10 production skills) | Execution surface for demo agents | B | 🔴 | Agent Diversity |
+| I8 | BNB Agent Studio (`bnb` CLI) | Create our 4 demo agents fast | B | 🔴 | Agents live on BSC |
+| I9 | TermiX BSC MCP server | BSC execution tools for agents + Advantage Report | B | 🔴 | TermiX track ($10k) |
+| I10 | PancakeSwap (v3 router/quoter) | Grid, LP-range rebalancing, yield targets | B | 🔴 | PancakeSwap track (1,000 CAKE) |
+| I11 | Venus protocol | Health-factor positions for HealthGuard | B | 🔴 | Health category depth |
+| I12 | Wallets (Binance Wallet, Trust, MetaMask) | Normie-first onboarding | A(⚡mock)→B | ⚫ | Functionality |
+| I13 | BNB Chain MCP server (`@bnb-chain/mcp`) | Dev tooling: reads/writes, ERC-8004 registration from Claude/Cursor | B | 🔴 | Build velocity |
+
+---
+
+## I1 · ERC-8004 — agent identity standard
+
+- **What:** Three on-chain registries: **Identity** (ERC-721-style registration + URI, browsable), **Reputation** (behavior track record), **Validation** (verification of claims/permissions). Spec: [eips.ethereum.org/EIPS/eip-8004](https://eips.ethereum.org/EIPS/eip-8004). BSC hosts ~60% of all registered agents.
+- **Our usage:** read identity + metadata (via 8004scan I2 + direct registry reads as fallback); join to our ProofLedger records by `agentId` (ERC-8004 token/ID). Our publish flow *claims* an existing ERC-8004 ID by owner signature — we never duplicate identity.
+- **Env/addresses:** registry address on BSC — resolve at build time via 8004scan docs; record in `.env.example` + this file when pinned.
+- **Gotchas:** agents can register metadata freely — treat registry claims as *claims*; only ProofLedger data (I3) is rendered as "verified". URI content is developer-controlled: sanitize/cache; never render raw HTML.
+
+## I2 · 8004scan (AltLayer) — the data layer
+
+- **What:** explorer + API over ERC-8004 across chains; hackathon grants **Pro tier free: 500 req/min, 100k req/day**; API returns structured agent identity, capability, ownership, reputation, feedback, network data. <https://8004scan.io/>
+- **Our usage:** `GET /v1/agents` read-through cache in api (TTL 60s list / 30s detail); nightly full re-sync; landing counters (agents count). OpenAPI key: `SCAN8004_API_KEY`.
+- **Gotchas:** respect budget (cache-first, refresh-in-background); on outage serve last-cache + staleness chip. Response schema versioning — pin the version we code against in `packages/sdk` zod schemas.
+
+## I3 · ProofLedger (our contract — see SMART-CONTRACT.md)
+
+- **What:** append-only on-chain ledger: `registerDecision(agentId, intentHash, deadline)` before execution → `attestOutcome(recordId, outcome, evidenceURI)` after. On BSC Chapel testnet first, mainnet for anchor records.
+- **Our usage:** the *only* source of "verified" metrics; leaderboard = derived view; `/verify/:agentId` audits raw records.
+- **Judging gold:** termiX track explicitly scores "track record: win rate, window, risk" — we are the only marketplace that answers this with on-chain proof.
+
+## I4 · ERC-8183 — escrowed hiring
+
+- **What:** Ethereum standard (Virtuals × Ethereum Foundation, Mar 2026): job escrow with **evaluator attestation** — funds escrowed → agent works → evaluator attests → release. Spec: [eips.ethereum.org/EIPS/eip-8183](https://eips.ethereum.org/EIPS/eip-8183). Virtuals ACP v2.0 is the reference implementation (2,000+ agents onboarded).
+- **Our usage:** hire button creates an ERC-8183 job via **Altana's ERC-8183 SDK** (`hireErc8183Agent` — explicitly a bonus criterion on the Altana track). Job states mirrored to Postgres and rendered in job history. Do **not** redeploy our own escrow.
+- **Gotchas:** evaluator design in v1 = keeper attestation from objective state (see SMART-CONTRACT.md §6); keep the job envelope standard so TermiX/agent clients interop.
+
+## I5 · x402 / B402 — per-task payments
+
+- **What:** HTTP-402-native payment protocol (created by Coinbase, adopted by Binance as B402; hackathon wants it). Agents already pay their own LLM bills and buy CMC data with it. Settlement in **USD1 ($U)** stablecoin on BSC. TS packages: `@x402/core`, `@x402/extensions`, `@x402/mcp` (verified in [Coinbase/x402](https://github.com/Coinbase/x402)); Python/Go also available.
+- **Our usage:** hire payments flow x402 in USD1; **3% protocol fee** routed via our facilitator config; receipts stored (job history) and surfaced ("You paid $1.20 — receipt ↗"). Dev-side: agents can *sell* over x402/B402 (Altana track bonus — our agents expose a B402 endpoint for their skills).
+- **Gotchas:** micropayment UX — show a single clear price pre-hire, settle silently; cache facilitator responses; USD1 approval allowance should be exact-amount, not infinite (render as "approve exactly $2.40").
+
+## I6 · Altana — agent wallets + scoped sessions + Keystore
+
+- **What:** self-custodial infra for sovereign agents: agent holds its own wallet/key; owner grants **scoped sessions** (allowlist of calls, spend cap, expiry); sessions registered in the **public on-chain Keystore**; revocation = 1 tx, effective immediately. Docs/SDK: altana.network; quickstart + workshop in hackathon resources.
+- **Our usage (three layers):**
+  1. **Trust Panel source of truth** — the plain-language permission sentences render from the *actual* session config (allowlist → "can trade CAKE/USDT on PancakeSwap"; cap → "max $50/day"; expiry → "until Friday").
+  2. **Hire flow** — session created at hire; user sees exact grant; STOP button sends Keystore revoke tx.
+  3. **Track checklist** — agents on own Altana wallets ✓, real limits ✓, Keystore-registered ✓, real txs through session keys ✓ (testnet counts, mainnet stronger), in-product revocation ✓, ERC-8183 hire ✓, x402 sell ✓. We tick every box.
+- **Gotchas:** session creation is the riskiest UX moment — wallet-gas + approve + session in one guided flow; failure states must be recoverable (retry each step idempotently).
+
+## I7 · Altana skills — execution surface
+
+Ten production skills at skills.altana.network: Aave V3 Lending, Copy Trade, Four.meme Trading, Lista Liquid Staking, PancakeSwap Liquidity, PancakeSwap Trading, Token Radar, Venus Lending, Wallet Tracker, x402 API Payments.
+**Our demo agents** (all created via I8, all executed via skills):
+
+| Agent | Category | Skills used | Demo behavior |
+|---|---|---|---|
+| **GridGoblin** | Grid trading | PancakeSwap Trading + Token Radar | grid on CAKE/USDT, $20 mainnet cap |
+| **RangeRanger** | Rebalancing | PancakeSwap Liquidity | re-center v3 LP range on volatility |
+| **YieldShepherd** | Yield optimisation | PancakeSwap Liquidity + Token Radar | rotate to best farm APY band |
+| **HealthGuard** | Health factor | Venus Lending (+ Aave) | keep HF > 1.8, top-up collateral |
+
+## I8 · BNB Agent Studio + `bnb` CLI
+
+- **What:** official scaffolding — describe an agent in one prompt inside Cursor/Claude Code; Studio handles identity (ERC-8004), wallet, x402 payments, deploys to AWS AgentCore runtime. Roadmap: TWAK wallets, BinancePay B402 merchants, dev dashboard.
+- **Our usage:** create the 4 demo agents (identity + runtime + self-funding); wake-on-demand webhook (48h free trials!) — api hits the runner endpoint before demos/judging windows.
+- **Gotchas:** free tier is 48h/testnet — never rely on a Studio runtime being warm; agents must be re-invocable; keep runner code in `agents/` so we can re-scaffold in minutes.
+
+## I9 · TermiX (BSC MCP server + Agent.family + Advantage Report)
+
+- **What:** MCP server for BSC ([github.com/termix-official/bsc-mcp](https://github.com/termix-official/bsc-mcp)) + Agent.family, the agent-to-agent marketplace (escrow, staked reputation, zkVM/TEE arbitration). TermiX **will hire from our marketplace during judging**.
+- **Our usage:** (a) our agents consume TermiX BSC tools where they beat raw viem calls; (b) public API shape (`GET /v1/agents`) designed so Agent.family clients can hire through us; (c) the required **Agent Advantage Report**: ≥3 real tasks with-vs-without-agent (time/cost/quality, outputs attached, ≥1 trading case) — scheduled Week 3 (C3.2), template drafted now.
+- **Gotchas:** "value of services" is 30% of their score — agents must deliver *measurable* outcomes, not vibes; every demo task logs baseline vs agent numbers from day one (cheap to do early, impossible to fake later).
+
+## I10 · PancakeSwap — the 1,000 CAKE track
+
+- **Our usage:** Grid/Range/Yield agents all execute through PancakeSwap v3 (quoter → router); "benefit to traders/LPs" paragraph backed by tx links; never-risk-more-than-configured is enforced by Altana caps (the track's explicit ask).
+- **Gotchas:** use the Quoter for expected outputs before swaps (no blind slippage); position math for v3 ranges tested against fork tests in Phase B.
+
+## I11 · Venus — health factor depth
+
+- **Our usage:** HealthGuard reads user's Venus position (collateral/debt/HF), pre-registers "will add X collateral if HF < 1.5" to ProofLedger, executes via Venus skill, attestation measures HF delta. "Saved liquidations" counter = our most emotional stat.
+- **Gotchas:** interest accrual between read and act — use conservative triggers; always display live HF with a 30s refresh.
+
+## I12 · Wallets & chains
+
+RainbowKit connectors ordered: **Binance Wallet → Trust → MetaMask** (our users' order). Chain: BSC (56) mainnet + Chapel (97) testnet switcher in footer. Testnet faucet link embedded in the fund step. SIWE-style message signing for publish/jobs (no email auth anywhere).
+
+## I13 · BNB Chain MCP server (dev tooling)
+
+- **What:** official MCP (`npx @bnb-chain/mcp@latest`) — blocks, txs, contracts, ERC20/NFT, wallet ops, **ERC-8004 agent registration**, Greenfield. Installed as a project skill (`bnbchain-mcp-skill`).
+- **Our usage:** during development (Claude/Cursor) for instant chain reads/writes and re-registering agents; also enables ERC-8004 registration without leaving the IDE.
+
+---
+
+## Environment variables (single source of truth)
+
+```bash
+# apps/api
+DATABASE_URL=            # Supabase Postgres (pooled)
+SCAN8004_API_KEY=        # 8004scan Pro (hackathon tier)
+SCAN8004_BASE_URL=https://api.8004scan.io        # pin at wiring time
+BSC_RPC_URL=             # mainnet RPC (public OK, paid better)
+BSC_TESTNET_RPC_URL=     # Chapel
+KEEPER_ATTESTER_KEY=     # ProofLedger ATTESTER role (secret; see SMART-CONTRACT.md)
+ALTANA_API_KEY=          # Altana SDK
+TERMIX_API_KEY=          # TermiX services (if required at wiring)
+PROOFLEDGER_ADDRESS_MAINNET=
+PROOFLEDGER_ADDRESS_TESTNET=
+ERC8004_REGISTRY_ADDRESS=
+PROTOCOL_FEE_BPS=300     # 3%
+# apps/web
+NEXT_PUBLIC_API_URL=
+NEXT_PUBLIC_DEMO_MODE=false
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
+```
+
+> ⚠️ Contract addresses & exact 8004scan endpoints get pinned in Week 1 of Phase B — update this table **in the same commit** that pins them.
