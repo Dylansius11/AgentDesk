@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+wallets/*.json
+keys/
+
+# Foundry
+cache/
+out/
+forge-cache/
+broadcast/
+
+# Python (research / graphify)
+__pycache__/
+*.pyc
+.venv/
+graphify-out/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs & misc
+*.log
+coverage/
+.turbo/
+wrangler/
