@@ -107,18 +107,45 @@ CLAUDE.md's status line said scaffold + skills were the "next" step; actual repo
 
 ---
 
-## Queued (Wave 2 — dispatch once Wave 1 lands)
+## Wave 2 — dispatched 2026-08-17 (account-unblocked work only)
 
-| ID | Task | Proposed owner | Depends on |
+Everything past scaffolding is blocked on external accounts nobody's provisioned yet (BUILD-PLAN's accounts checklist, owner Dylan — all 10 items still unchecked: GitHub public, Vercel, Supabase connection string, Railway, funded BSC testnet/mainnet wallet, 8004scan Pro key, Altana SDK access, TermiX MCP access, AWS/Agent Studio, intake form). These two tasks were picked specifically because they need none of that.
+
+### Task: Mock `AgentDeskClient` (Phase A's B1, account-unblocked)
+- **Owner:** `bnb-stack-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Build the fixtures-backed `AgentDeskClient` — the interface + implementation that F2–F6 will consume once frontend resumes, and that Phase B's Hono-backed client will later swap in behind the same seam (CLAUDE.md §6).
+- **Scope:** `AgentDeskClient` TS interface in `packages/sdk` (`getAgents`, `getAgent`, `getProofRecords`, `hire`, `revoke`, `getDashboard`) per BUILD-PLAN B1; a fixtures-backed implementation reading the already-committed 12 agent fixtures with artificial latency; a simple scripted event stream for the dashboard's live feed (SSE-shaped, not real SSE — matches F5's "ticks every 5s from scripted fixture events" AC).
+- **Explicitly out of scope:** `apps/web` screens (still paused), `apps/api`'s real implementation (separate, blocked on 8004scan key).
+- **Depends on:** nothing — `packages/sdk` fixtures already exist and are validated.
+- **Completion criteria:** a component could call `client.getAgents()` and get real fixture data with realistic latency, with zero fixture imports needed outside the client itself.
+
+### Task: ProofLedger deploy scripts + local Anvil dry-run
+- **Owner:** `proof-engine-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Write the Chapel + mainnet deploy scripts (currently deliberately missing, see `packages/contracts/script/README.md`) and prove the full decision→attestation flow works end-to-end against a **local Anvil instance** (ships its own funded test accounts — no real key needed), since real Chapel/mainnet deployment stays blocked on a funded deployer key nobody has yet.
+- **Scope:** `script/Deploy.s.sol` (or `script/deploy.ts` per ARCHITECTURE.md — agent's call which fits the existing Foundry setup better), parameterized per environment; a local dry-run against `anvil` proving deploy → `registerDecision` → (wait past deadline) → `attestOutcome` all work against the deployed bytecode, not just in-memory `forge test`.
+- **Explicitly out of scope:** any real Chapel/mainnet transaction (no funded key exists this session); wiring `apps/keeper` to consume real events (separate future task).
+- **Depends on:** nothing external — local-only.
+- **Completion criteria:** deploy script runs clean against local anvil; a full register→attest cycle demonstrated against the deployed instance; script is ready to point at Chapel the moment a funded key exists.
+
+---
+
+## Queued — blocked, do not dispatch until the blocker clears
+
+| ID | Task | Proposed owner | Blocked on |
 |---|---|---|---|
-| B1 | Mock API client (`getAgents`, `getAgent`, `getProofRecords`, `hire`, `revoke`, `getDashboard`) w/ artificial latency + SSE-ish dashboard stream | `bnb-stack-engineer` (owns the `AgentDeskClient` mock-seam contract that Phase B's real client will replace) | A0.3 |
-| F2 | Marketplace browse screen | `frontend-polish` | F1 retrofit, A0.3 |
+| F2 | Marketplace browse screen | `frontend-polish` | **user directive** — frontend paused; also needs the `apps/web` stray-changes state resolved first |
 | F3 | Agent profile screen | `frontend-polish` | F2 |
 | F4 | Hire flow | `frontend-polish` | F3 |
 | F5 | Dashboard | `frontend-polish` | F4 |
 | F6 | Leaderboard | `frontend-polish` | F2 |
+| C1.2 | Demo agents (GridGoblin/YieldShepherd/HealthGuard/RangeRanger) via `bnb` CLI + Agent Studio + Altana | `bnb-stack-engineer` | **account** — AWS/Agent Studio + Altana SDK access not provisioned |
+| B1.1 (real) | Wire `apps/api` services to real 8004scan/Altana calls | `bnb-stack-engineer` | **account** — 8004scan Pro API key, Altana API key |
+| B1.2 (real) | Run drizzle migration against real Postgres | — | **account** — Supabase project + `DATABASE_URL` |
+| C1.1 (deploy) | Deploy ProofLedger to BSC Chapel testnet for real | `proof-engine-engineer` | **account** — funded testnet deployer key (Wave 2's Anvil dry-run removes everything else blocking this) |
 
-Not yet dispatched — Phase B tasks (C1.1 ProofLedger, C1.2 demo agents, etc.) stay backlog until Phase A's exit gate per BUILD-PLAN guardrail 1 (anti-over-engineering law).
+Everything in this table is either an account blocker (see Wave 2's header) or downstream of the paused frontend track — re-check this table before dispatching anything new.
 
 ---
 
