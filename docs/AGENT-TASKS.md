@@ -18,6 +18,12 @@
 
 ---
 
+## User directive (2026-08-16, mid-Wave-1) — reprioritization
+
+User stopped the `frontend-polish` dispatch mid-task and redirected: **do not resume frontend work; focus on smart contract + backend + architecture first.** This overrides BUILD-PLAN's Phase-A-frontend-first sequencing by explicit instruction. Frontend (A0.2/F1 retrofit, and all of Wave 2's F-screens) is paused, not cancelled — resume only on later instruction.
+
+Also landed right as this directive arrived: `hackathon-captain`'s risk report (A0.4 done, demo script frozen) flagged that the F-lane critical path (B1→F2→F3→F4→F5) has ~3.5 days of work and recommended descoping F6/F7/F8 to protect the Nina journey for Aug 20 — that analysis assumed frontend stayed the active lane. With frontend now paused by user directive, treat that risk report as informational for when frontend resumes, not as a reason to keep it active now.
+
 ## Reality check (2026-08-16, gathered before first dispatch)
 
 CLAUDE.md's status line said scaffold + skills were the "next" step; actual repo inspection shows more — and less — than that:
@@ -37,7 +43,7 @@ CLAUDE.md's status line said scaffold + skills were the "next" step; actual repo
 
 ### Task: A0.2 + F1 retrofit — design tokens & de-raw-hex pass
 - **Owner:** `frontend-polish`
-- **Status:** 🔴 stopped by user (mid-retrofit — `closing-cta` and `site-footer` were still unconverted when stopped; other components may be partially or fully done, unverified). Awaiting instruction before resuming.
+- **Status:** ⏸️ **paused by user directive** (mid-retrofit — `closing-cta` and `site-footer` were still unconverted when stopped; other components may be partially or fully done, unverified). Do not resume until instructed — see "User directive" section above.
 - **Objective:** Establish the real AgentDesk design tokens and bring the already-built F1 landing page into spec, since it was built before tokens existed.
 - **Scope:** (1) Create the tokens file per TECH-STACK.md §3 / frontend-polish design law: near-black `#0B0E11` canvas, BNB gold `#F0B90B` reserved for verification + primary actions only, semantic green/red for money, Inter + tabular mono for numbers, spacing/radius/elevation scale. (2) Add a `/style` route rendering the palette + type specimen. (3) Retrofit `app/globals.css` and all 7 `components/landing/*` files to consume tokens — zero raw hex remaining. (4) Confirm dark-mode-as-default per SCREEN-DETAIL/TECH-STACK.
 - **Explicitly out of scope:** do not build F2–F6 screens; do not touch `packages/sdk`, `apps/api`, `apps/keeper`, `packages/contracts`, or `docs/demo-script.md`.
@@ -49,7 +55,7 @@ CLAUDE.md's status line said scaffold + skills were the "next" step; actual repo
 
 ### Task: A0.1 (sdk portion) + A0.3 — packages/sdk schemas & mock fixtures
 - **Owner:** `proof-engine-engineer`
-- **Status:** 🟡 dispatched
+- **Status:** ✅ **done, PM-verified** — re-ran `pnpm fixtures:validate` and `pnpm --filter @agentdesk/sdk check` independently, both green. 12 fixtures (3/category, exactly 2 unverified: MoonMechanic, YieldPilot), `ProofRecord` schema structurally enforces pre-registration + post-deadline-attestation via zod `.refine()`s, `Agent.verified` structurally requires `proofProgram=true` + resolved metrics. HealthGuard's stats (98% win rate, 412 tasks) pinned to match the frozen demo script. Added 2 `HireSession` fixtures beyond the literal ask to validate that schema against real data — kept, not trimmed. **Not yet committed** — holding until the two concurrent Wave 1B agents (contracts, api/keeper) finish, since all three are touching shared root files (`package.json`, `turbo.json`, `pnpm-lock.yaml`); will do one clean consolidated commit pass once everything in flight lands.
 - **Objective:** Stand up `packages/sdk` (zod schemas + TS types) and the 12-agent fixture set everything else (mock API, F2–F6) will consume.
 - **Scope:** (1) Zod schemas + inferred TS types for `Agent`, `ProofRecord`, `HireSession`, `Category` — `ProofRecord`'s shape must respect the append-only/pre-registration semantics from `docs/technical/SMART-CONTRACT.md` (decision timestamp < execution timestamp fields, intentHash/evidenceHash present) since this schema is the moat object and gets frozen early. (2) 12 mock agent fixtures, 3 per category (Grid Trading, Rebalancing, Yield Optimisation, Health-Factor Monitoring) with believable proof records, equity curves, trust panels, pricing; exactly 2 marked unverified to exercise the badge contrast. (3) Wire a `fixtures:validate` script (root `pnpm fixtures:validate` per CLAUDE.md §5) that validates every fixture against the schemas and fails loudly on drift.
 - **Explicitly out of scope:** do not build the mock API client (`B1` — separate task, depends on this one); do not touch landing/design work; do not touch contracts.
@@ -70,6 +76,34 @@ CLAUDE.md's status line said scaffold + skills were the "next" step; actual repo
 - **Constraints:** one paragraph for the script — this is a freeze, not a draft-for-review; honesty over optimism on the risk read.
 - **Depends on:** nothing (parallel-safe).
 - **Completion criteria (= BUILD-PLAN A0.4 AC):** `docs/demo-script.md` exists, one paragraph, committed-ready.
+
+---
+
+## Wave 1B — dispatched 2026-08-16 (pivot: smart contract + backend architecture, per user directive)
+
+### Task: ProofLedger contract scaffold (Foundry)
+- **Owner:** `proof-engine-engineer` (second, parallel instance — separate from the A0.1/A0.3 sdk/fixtures instance; different directory, no conflict)
+- **Status:** ✅ **done, PM-verified + one PM decision applied.** Re-ran `forge test` independently: 29/29 green (25 unit + 4 invariant, 12,800 fuzz calls each, 0 reverts). Append-only is structural (no update/delete path exists, not just role-gated), `resolved` is derived not a mutable flag. Agent left 1 test intentionally failing rather than silently loosen it: cold-path `registerDecision` for a brand-new `agentId` measured 124,095 gas, 3.4% over the 120k budget (steady-state, an agent's 2nd+ decision, measured 102,483 — comfortably under). **PM decision:** gate on steady-state cost (what the vast majority of real registrations pay); treat the one-time-per-agent-lifetime cold-onboarding premium as a logged diagnostic, not a build-failing gate — recorded in both `SMART-CONTRACT.md` §5.4 and the test's docstring. Also deleted `packages/contracts/.github/workflows/test.yml` (auto-generated by `forge init`, inert since GH Actions only reads root `.github/workflows/` which doesn't exist yet — real CI wiring is a follow-up, not this task's scope). **Not yet committed** — bundling into one pass with sdk + api/keeper now that all three have landed.
+- **Objective:** Stand up the real `packages/contracts` Foundry project and the ProofLedger contract skeleton — this is BUILD-PLAN's C1.1, pulled forward ahead of Phase A completion by explicit user instruction.
+- **Scope:** Foundry project init (`foundry.toml`, `remappings.txt`, `src/`, `test/`, `script/` per ARCHITECTURE.md §3); `ProofLedger.sol` with `registerDecision(agentId, intentHash, deadline)`, `attestOutcome(recordId, outcome, evidence)`, events, and the append-only invariant (no update/delete path for any decision or outcome, ever — see `proof-engine-engineer` agent's non-negotiables); unit tests proving append-only + "attest only after deadline"; `ATTESTER_ROLE` access control (keeper EOA in v1); contract never holds funds; no proxy/pause/upgrade.
+- **Explicitly out of scope:** do not deploy to Chapel testnet yet (needs funded deployer key, not available this session); do not build the indexer/keeper event-consumption side (separate task); do not touch `apps/`.
+- **Inputs:** `docs/technical/SMART-CONTRACT.md`, `bsc-foundry` skill.
+- **Outputs:** working `packages/contracts` Foundry project, `forge build` and `forge test` both green, brief report of function signatures + invariants proven + gas numbers for `registerDecision` (AC target: ≤120k gas).
+- **Constraints:** immutable contract design; gas discipline per SMART-CONTRACT.md.
+- **Depends on:** nothing.
+- **Completion criteria:** `forge test` green including an append-only invariant test; `registerDecision` gas ≤120k (or reported honestly if not yet met, with the gap explained).
+
+### Task: Backend architecture scaffold — apps/api + apps/keeper
+- **Owner:** `bnb-stack-engineer`
+- **Status:** ✅ **done, PM-verified** — re-ran independently: `pnpm --filter api check` and `pnpm --filter keeper check` both clean; booted `apps/api` for real and curled it — `/api/health` returns `200` with honest `"unconfigured"` checks (no fake "connected" claims), `/v1/agents` returns `{data:[],...}` not fabricated data. `.env.example` (new) + `INTEGRATION.md` updated together with the 2 new keeper env vars, exactly per env-discipline rule. **Follow-up needed:** `sessions.ts` routes (`GET /v1/sessions/:id`, `/permission-sentence`) were added as a documented extrapolation — ERD.md's API table doesn't list them yet; fold into ERD.md in a follow-up commit before Phase B F2.1 (Trust Panel v2) needs them. **Not yet committed** — same reason as the sdk task: waiting on the still-running contracts task before one consolidated pass.
+- **Objective:** Stand up the real service structure for `apps/api` (Hono) and `apps/keeper`, per ARCHITECTURE.md §3 — structure and stubs now, live external calls stay Phase B unless directed otherwise.
+- **Scope:** `apps/api`: Hono app (`src/index.ts`), route files stubbed per ARCHITECTURE.md (`src/routes/v1/{agents,proof,jobs,sessions}.ts` — real shape, stub/mock responses typed against `packages/sdk` once it lands, or local types if sdk isn't ready yet), `src/services/` folder stubs (`scan8004.ts`, `proof.ts`, `hire.ts`, `altana.ts`, `metrics.ts` — signatures + TODOs, not live calls), `src/db/` drizzle schema matching `docs/technical/ERD.md` (schema only — migration can be a follow-up), a real `/api/health` endpoint. `apps/keeper`: worker skeleton (entry point + the attestation-loop shape from ARCHITECTURE.md §4.3, not-yet-wired to a real RPC).
+- **Explicitly out of scope:** do not implement live 8004scan/Altana/x402 calls yet (no API keys provisioned this session per BUILD-PLAN's accounts checklist, still pending); do not touch `apps/web`; do not touch `packages/contracts`.
+- **Inputs:** `docs/technical/ARCHITECTURE.md` (repo structure, sequence diagrams), `docs/technical/ERD.md` (schema), `docs/technical/INTEGRATION.md` (env var inventory — add stub entries to `.env.example` for anything new).
+- **Outputs:** `apps/api` and `apps/keeper` real skeletons, `.env.example` updated if new env vars introduced, brief report of what's structural-only vs. stubbed vs. TODO.
+- **Constraints:** TypeScript strict; follow the boundary rule (on-chain = truth, Postgres = cache, API never invents authoritative state) even in stub form — don't hardcode fake "verified" numbers anywhere, stub responses should be obviously empty/placeholder, not fabricated-looking real data.
+- **Depends on:** nothing (parallel-safe with the contract task and the still-running sdk/fixtures task).
+- **Completion criteria:** `pnpm --filter api dev` boots and `/api/health` responds; `apps/keeper` has a runnable (even if no-op) entry point; structure matches ARCHITECTURE.md §3.
 
 ---
 
