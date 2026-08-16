@@ -97,7 +97,7 @@ pnpm --filter contracts forge:script:chapel  # deploy BSC testnet
 
 ### Current status (update when it changes)
 
-- **2026-08-16:** Docs foundation complete (PRD, BUILD-PLAN, technical set, prototype prompt). Next: BUILD-PLAN A0.1 scaffold + Lovable prototype from PROTOTYPE-PROMPT.md for Aug 20. Repo: private. Accounts checklist in BUILD-PLAN.md pending (Dylan).
+- **2026-08-16:** Docs foundation complete (PRD, BUILD-PLAN, technical set, prototype prompt). Skills installed (impeccable/taste-skill/emil-design-eng global; bnb-agent-stack + bsc-foundry + official bnbchain-mcp in `.claude/skills` and global). 4 custom agents in `.claude/agents`. **Graphify initialized** — knowledge graph in `graphify-out/` (gitignored, regenerable): 92 nodes / 210 edges / 7 communities; run `graphify --update` (or `/graphify . --update`) after doc changes. Next: BUILD-PLAN A0.1 scaffold + Lovable prototype from PROTOTYPE-PROMPT.md for Aug 20. Repo: private. Accounts checklist in BUILD-PLAN.md pending (Dylan).
 
 ---
 
@@ -110,6 +110,12 @@ pnpm --filter contracts forge:script:chapel  # deploy BSC testnet
 - **Worked:** DuckDuckGo HTML (`duckduckgo.com/html/?q=`) via web reader as a reliable search fallback when WebSearch times out; fxtwitter/vxtwitter APIs for X content; cloning official repos (bnbchain-skills, Coinbase/x402) to ground integration docs in real package names instead of press-release claims.
 - **Failed:** `bnbagent_sdk` repo name from press coverage 404s (underscore and hyphen both) — the SDK is reachable via the Agent Studio docs/MCP instead; parallel WebSearch batches timed out — sequential with fewer queries is more reliable under flaky network.
 - **Pattern to reuse:** research → official page fetch → repo clone → write docs in this order gave high-confidence facts; always mark UNVERIFIED instead of guessing.
+
+### 2026-08-16 — Skills, agents, graphify initialization
+
+- **Worked:** official `bnb-chain/bnbchain-skills` clone gave the real MCP skill (`npx @bnb-chain/mcp@latest`) — installing from source beats transcribing press coverage; Coinbase/x402 clone confirmed package names (`@x402/core`, `@x402/extensions`, `@x402/mcp`). Graphify pipeline (uv tool → detect → 1 semantic subagent → build → label → export) completed on 17 docs: 92 nodes, 210 edges, 7 communities, HTML + graph.json + GRAPH_REPORT.md in `graphify-out/`.
+- **Failed:** subagent infrastructure intermittently returned "captcha verify failed" / inactive-timeout earlier in the day — retrying later worked; when subagents fail, sequential WebSearch/web_reader by the host is the fallback. `python -m graphify.cli export html` silently did nothing — use the `graphify.exe` binary from the uv tool dir instead.
+- **Pattern to reuse:** keep `graphify-out/` gitignored and regenerate with `--update`; version warning "skill 0.9.29 vs package 0.9.44" is harmless (`graphify install` can sync later). Graph god-nodes = CLAUDE.md, bnb-agent-stack skill, SCREEN-DETAIL, ProofLedger — exactly the docs future sessions must read first.
 
 ## 10. 💡 SELF-INSIGHT LOG (append-only — strategy, product, meta-observations)
 
