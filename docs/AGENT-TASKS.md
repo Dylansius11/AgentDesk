@@ -145,6 +145,21 @@ Everything past scaffolding is blocked on external accounts nobody's provisioned
 
 ---
 
+## Wave 4 — dispatched 2026-08-17 (user directive: skip Chapel for now, local smoke test instead)
+
+Chapel deploy is staged and ready (Wave 3) but paused — the funded balance is borderline (~0.0001 tBNB vs. ~0.00011 estimated deploy cost, PM-verified against live gas price) and the user chose not to gamble a partial broadcast on it. Pivoting to proving the pieces work together locally instead, which also closes a gap flagged in the last audit: no typed ABI export existed from `packages/contracts` for `apps/api`/`apps/keeper` to consume.
+
+### Task: Local end-to-end smoke test — keeper ↔ ProofLedger via real anvil, not stubs
+- **Owner:** `proof-engine-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Prove the actual keeper code (not `cast` commands run by hand, not stubs) can index a real on-chain `DecisionRegistered` event and submit a real `attestOutcome` transaction against a locally-deployed ProofLedger — closing the gap between "contract works" (Wave 2) and "keeper works" (still 100% stubbed, per Wave 1B's `apps/keeper/src/jobs/attester.ts`).
+- **Scope:** (1) Export typed ABI/bindings from `packages/contracts` for TS consumption (viem `Abi` const or similar — whatever fits `apps/keeper`'s existing viem/ethers choice) — this was a flagged gap, close it here since it's a hard prerequisite for this task anyway. (2) Wire `apps/keeper/src/jobs/attester.ts` (and `indexer.ts` if needed to detect the decision) to actually connect to a local `anvil` instance, using anvil's well-known default test key — NOT the real Chapel keys sitting in `packages/contracts/.env.chapel-deploy`, keep those two entirely separate. (3) Run the real flow: start anvil → deploy ProofLedger (reuse `Deploy.s.sol`) → the keeper's real indexer job picks up a `registerDecision` call → the keeper's real attester job resolves + submits `attestOutcome` after the deadline → confirm state via the deployed contract, not mocked data.
+- **Explicitly out of scope:** Chapel/mainnet (paused, not this task); `apps/api` routes; `apps/web`; anything using the real Chapel keys.
+- **Depends on:** nothing — local-only, same anvil pattern as Wave 2.
+- **Completion criteria:** a real `registerDecision` → real keeper-code-driven `attestOutcome` cycle demonstrated against a locally deployed ProofLedger, driven by the actual `apps/keeper` job code, not hand-run `cast` commands.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
