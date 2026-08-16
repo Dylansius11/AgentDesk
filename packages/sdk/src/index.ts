@@ -5,6 +5,7 @@
  * only — never reach into `src/schemas/*` or `src/fixtures/*` directly
  * (ARCHITECTURE.md §3 import rule).
  */
-export * from "./schemas";
-export * from "./fixtures";
-export * from "./client";
+export * from "./schemas/index.js";
+export * from "./fixtures/index.js";
+export * from "./client/index.js";
+export * from "./abi/index.js";

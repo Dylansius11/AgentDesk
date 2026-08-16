@@ -9,8 +9,8 @@
  * chose rather than one suggested.
  */
 import { z } from "zod";
-import { AddressSchema, AgentIdSchema, IsoDatetimeSchema, TxHashSchema, Usd1NonNegativeSchema } from "./primitives";
-import { AllowlistEntrySchema } from "./trust-panel";
+import { AddressSchema, AgentIdSchema, IsoDatetimeSchema, TxHashSchema, Usd1NonNegativeSchema } from "./primitives.js";
+import { AllowlistEntrySchema } from "./trust-panel.js";
 
 export const JobStatusSchema = z.enum([
   "created",

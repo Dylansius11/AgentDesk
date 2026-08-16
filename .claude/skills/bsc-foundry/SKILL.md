@@ -24,7 +24,8 @@ packages/contracts/
 ## Commands
 
 ```bash
-pnpm --filter contracts build          # forge build
+pnpm --filter contracts build          # forge build && node script/export-abi.mjs (see below)
+pnpm --filter contracts export:abi     # regenerate ABI exports only, without a full rebuild
 pnpm --filter contracts test           # forge test (includes append-only invariants)
 pnpm --filter contracts snapshot       # gas report; CI FAILS if registerDecision > 120k gas at steady-state (SMART-CONTRACT.md §5.4)
 pnpm --filter contracts deploy:anvil   # local dry-run against a running `anvil` — no funded key needed
@@ -33,6 +34,13 @@ pnpm --filter contracts deploy:mainnet # gated: requires MAINNET_CONFIRM=yes env
 ```
 
 `fork:test` (Chapel-fork end-to-end incl. a real PancakeSwap swap) isn't built yet — Phase B work, once a testnet deployment exists.
+
+**ABI export (Wave 4, 2026-08-17):** `script/export-abi.mjs` pulls the ABI out of `forge build`'s
+gitignored `out/ProofLedger.sol/ProofLedger.json` artifact and writes two committed outputs:
+`exported/ProofLedger.abi.json` (plain JSON) and `packages/sdk/src/abi/proof-ledger.ts` (a viem
+`as const` TS literal — generated, banner says so, do not hand-edit). `apps/api`/`apps/keeper`
+import it as `proofLedgerAbi` from `@agentdesk/sdk`, never from `packages/contracts` directly.
+Runs automatically as part of `build`; rerun `export:abi` standalone after any interface change.
 
 ## Invariants that must NEVER break (CI-enforced)
 

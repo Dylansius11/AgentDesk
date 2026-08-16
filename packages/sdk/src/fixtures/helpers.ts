@@ -10,8 +10,8 @@
  * across runs/diffs.
  */
 import { createHash } from "node:crypto";
-import type { Address, Hex32, TxHash } from "../schemas/primitives";
-import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record";
+import type { Address, Hex32, TxHash } from "../schemas/primitives.js";
+import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record.js";
 
 function sha256Hex(seed: string): string {
   return createHash("sha256").update(seed).digest("hex");

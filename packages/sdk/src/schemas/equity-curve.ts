@@ -8,7 +8,7 @@
  * proof lands (never fabricate points to fill the chart).
  */
 import { z } from "zod";
-import { IsoDatetimeSchema } from "./primitives";
+import { IsoDatetimeSchema } from "./primitives.js";
 
 export const EquityPointSchema = z.object({
   timestamp: IsoDatetimeSchema,

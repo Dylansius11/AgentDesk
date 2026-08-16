@@ -135,6 +135,7 @@ PROTOCOL_FEE_BPS=300     # 3%
 # PROOFLEDGER_ADDRESS_* / KEEPER_ATTESTER_KEY above)
 KEEPER_POLL_INTERVAL_MS=60000       # indexer/attester/session-watcher loop cadence (ARCHITECTURE.md §4.3)
 KEEPER_METRICS_INTERVAL_MS=3600000  # hourly proof_metrics safety-net sweep (ERD.md §5)
+PROOFLEDGER_DEPLOY_BLOCK=           # new (Wave 4): indexer's getContractEvents scan start block; mirrors exported/addresses.<network>.json's deployedAtBlock
 # apps/web
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_DEMO_MODE=false

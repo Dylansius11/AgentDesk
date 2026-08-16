@@ -7,7 +7,7 @@
  * needs different numbers is a different agent, not a patched metrics row.
  */
 import { z } from "zod";
-import { IsoDatetimeSchema } from "./primitives";
+import { IsoDatetimeSchema } from "./primitives.js";
 
 export const MetricsWindowSchema = z.enum(["7d", "30d", "all"]);
 export type MetricsWindow = z.infer<typeof MetricsWindowSchema>;

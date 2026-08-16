@@ -5,8 +5,8 @@
  * exactly (98% win rate, 412 tasks) so downstream screens never contradict
  * the frozen demo narrative.
  */
-import type { Agent } from "../../schemas/agent";
-import { buildAction, buildResolvedRecord, isoAt, mkAddress } from "../helpers";
+import type { Agent } from "../../schemas/agent.js";
+import { buildAction, buildResolvedRecord, isoAt, mkAddress } from "../helpers.js";
 
 const healthGuard: Agent = {
   id: "4001",

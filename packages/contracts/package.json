@@ -3,7 +3,8 @@
   "private": true,
   "description": "ProofLedger — AgentDesk's append-only, on-chain decision -> outcome ledger (Foundry).",
   "scripts": {
-    "build": "forge build",
+    "build": "forge build && node script/export-abi.mjs",
+    "export:abi": "node script/export-abi.mjs",
     "test": "forge test",
     "snapshot": "forge snapshot",
     "fmt": "forge fmt",

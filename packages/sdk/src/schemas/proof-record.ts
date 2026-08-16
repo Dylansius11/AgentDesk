@@ -28,7 +28,7 @@ import {
   TxHashSchema,
   Usd1Schema,
   Usd1NonNegativeSchema,
-} from "./primitives";
+} from "./primitives.js";
 
 /** Max window between registration and self-imposed deadline (SMART-CONTRACT.md §2.3: "front-running the deadline"). */
 export const MAX_DECISION_WINDOW_HOURS = 24;
