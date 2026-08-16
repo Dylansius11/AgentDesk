@@ -1,0 +1,35 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AgentDesk REST + SSE API (Hono on Node 22). See docs/technical/ARCHITECTURE.md §3.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "check": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@hono/zod-validator": "^0.9.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.2",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.10",
+    "pino-pretty": "^13.1.3",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.0"
+  }
+}
