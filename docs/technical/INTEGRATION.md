@@ -48,6 +48,22 @@
 - **What:** append-only on-chain ledger: `registerDecision(agentId, intentHash, deadline)` before execution → `attestOutcome(recordId, outcome, evidenceURI)` after. On BSC Chapel testnet first, mainnet for anchor records.
 - **Our usage:** the *only* source of "verified" metrics; leaderboard = derived view; `/verify/:agentId` audits raw records.
 - **Judging gold:** termiX track explicitly scores "track record: win rate, window, risk" — we are the only marketplace that answers this with on-chain proof.
+- **Deployed addresses** (pinned from `packages/contracts/exported/addresses.<network>.json`, patched to the real broadcast-receipt block per `script/patch-deployed-block.sh`):
+
+  | Network | Chain ID | ProofLedger address | Deployed at block | Admin | Attester (`ATTESTER_ROLE`) |
+  |---|---|---|---|---|---|
+  | BSC Chapel (testnet) | 97 | `0x2a55f63dE4b1ac19a43d05A1B954E2569D4CB523` | 125536768 | `0x3E30AA39525ec6cD0C8054f53fCF0D7e952D4045` | `0xbc5a13b541c20e2C95b89bC30EA0Cb6538faeCD0` |
+  | BSC mainnet | 56 | not yet deployed | — | — | — |
+  | local anvil | 31337 | ephemeral, redeployed per session (see `exported/addresses.anvil.json`, gitignored) | n/a | n/a | n/a |
+
+  Deployed 2026-08-17 via `pnpm --filter contracts deploy:chapel` (forge script, no `--verify` this pass — no `BSCSCAN_API_KEY` provisioned yet; source is verifiable manually against `src/ProofLedger.sol` in the meantime, BscScan verification is a follow-up once a key exists). Deploy tx: `0xd85caf3ba32333999bfaa89b8205de4d4df3de4518fcf91494659682347f0be6` (block 125536768, gas used 771,895, status success). Full liveness proven end-to-end against the real deployed instance, same sequence Wave 2 proved on anvil:
+  1. `registerDecision(1, intentHash, deadline)` — tx `0xad52d0e86d1395de7029616ef754a6ccf553ee1c2295a91ba206a1aea5b29a79` (recordId 1, agentId 1, block 125536943, gas used 118,916). Read back via `getDecision(1)` on-chain, matched.
+  2. Past deadline, `attestOutcome(1, status=1, pnlUsd1=0, evidenceHash)` from the attester key — tx `0x2c1ed24bd0c02f89461e21de75b2caecca1cc67c2070c12e01dfcbd366c564e2` (block 125537210, gas used 99,018). Read back via `getOutcome(1)`, matched; `getDecision(1).resolved` flipped to `true`.
+  3. Tamper attempt — a second `attestOutcome(1, ...)` call from the attester key — correctly reverted `AlreadyAttested` on-chain, confirming the append-only invariant holds against the real deployed bytecode, not just the test suite.
+
+  (Attester wallet was funded with 0.001 tBNB from the deployer, tx `0xf8871eb9447e456247efe23eaf0b1dc30aa2e628b131099c9f60aec9d422fa99`, purely so it could pay gas for the attestation call above — no protocol significance.)
+
+  `apps/keeper` still targets local anvil only (Wave 4 scope) — pointing it at this Chapel address is a separate future task. BscScan verification pending a provisioned `BSCSCAN_API_KEY` — known gap, not blocking.
 
 ## I4 · ERC-8183 — escrowed hiring
 
