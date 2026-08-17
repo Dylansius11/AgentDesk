@@ -305,6 +305,22 @@ User funded the Chapel deployer for real: `0x3E30AA39525ec6cD0C8054f53fCF0D7e952
 
 ---
 
+## Wave 9c — dispatched 2026-08-17 (dry-run erc8183_create_job — surface any second blocker behind $U)
+
+PM+user decision: `$U` funding is a confirmed hard wall (Wave 9b), but Wave 9b never actually attempted `erc8183_create_job` — it stopped at the balance check. Real hire (settlement) needs a cooperating third-party counterparty and stays deprioritized (Altana bonus-track checkbox, not main-track-blocking, per PM/user discussion). But it's cheap and valuable to find out now whether a *second* blocker exists behind the funding wall, via a simulated call — no real `$U` needed, no real tx sent.
+
+### Task: Static/simulated `erc8183_create_job` call — surface hidden blockers, no funds spent
+- **Owner:** `bnb-stack-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Determine whether `erc8183_create_job`/`hireErc8183Agent` would hit any blocker *other than* insufficient `$U` balance/allowance — e.g. minimum job size, provider/seller-registration requirements, a paused kernel, an allowlist — by simulating the call rather than sending a real transaction.
+- **Scope:** Use `publicClient.simulateContract` (or the SDK's own dry-run path if `hireErc8183Agent`/the kernel exposes one) against the real ERC8183 kernel (`AgenticCommerce`, addresses from `ERC8183_ADDRESSES` per `INTEGRATION.md` I4) on Chapel, with a real counterparty address (reuse one of the real third-party agents found in Wave 9b via 8004scan — e.g. "Tianquan Gateway" or "AgentCensus Health Factor Monitor", re-confirm their current owner/agent address first since 8004scan data can drift) and a zero or minimal placeholder `budget`/amount. The goal is purely to read the **revert reason** if it reverts — if it reverts specifically on a balance/allowance check (expected, matches the known `$U` wall), that confirms no second blocker exists behind it; if it reverts for any OTHER reason, report that clearly as a newly-found second blocker. Also worth a quick read of the kernel contract's verified source (if verified on BscScan) for any minimum-job-size or seller-registration require() statements, to cross-check the simulation result.
+- **Explicitly out of scope:** sending any real transaction; acquiring real `$U`; attempting full settlement; `apps/web`; mainnet.
+- **Non-negotiable security constraint:** no private key printed/echoed/logged. Simulated calls don't need a funded signer for the `from` address in most cases (static calls can use any address) — avoid spending real gas/tBNB on this if at all possible.
+- **Depends on:** Wave 9b (committed `2126054`).
+- **Completion criteria:** a clear, honest answer to "is `$U` the ONLY blocker, or is there a second one waiting behind it" — backed by either a real simulated revert reason or verified contract source, not a guess.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
