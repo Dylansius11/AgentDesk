@@ -57,6 +57,11 @@ export const jobStatusEnum = pgEnum('job_status', [
   'revoked',
   'failed',
   'expired',
+  // Added 2026-08-17 (hire.ts real wiring, see packages/sdk JobStatusSchema
+  // + ERD.md jobs table note in same commit) — the honest fundJob() outcome
+  // when the real hireErc8183Agent() call reaches the documented $U wall
+  // (INTEGRATION.md I4). Never write 'funded' when funding did not happen.
+  'pending_funding',
 ])
 
 // ---------------------------------------------------------------------------
@@ -192,7 +197,12 @@ export const jobs = pgTable('jobs', {
     .notNull()
     .references(() => agents.id),
   hirerAddress: text('hirer_address').notNull(),
-  config: jsonb('config'), // { amount_usd1, spend_cap, duration, allowlist, triggers }
+  // Real @agentdesk/sdk HireConfig object, verbatim (amountUsd1, spendCapUsd1,
+  // spendCapWindow, durationDays, allowlist: AllowlistEntry[]) — see
+  // packages/sdk/src/schemas/hire-session.ts. Updated 2026-08-17 (hire.ts
+  // real wiring) from the earlier ad hoc { amount_usd1, spend_cap, duration,
+  // allowlist, triggers } shape this comment described before HireConfig existed.
+  config: jsonb('config'),
   status: jobStatusEnum('status').notNull().default('created'),
   feeUsd1: numeric('fee_usd1', { precision: 12, scale: 2 }), // 3% protocol fee
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

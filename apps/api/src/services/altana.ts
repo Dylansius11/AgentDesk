@@ -23,12 +23,22 @@
  * fresh end-to-end run was blocked by deployer testnet-gas exhaustion, not
  * by anything in this code — see final report.
  *
- * KNOWN LIMITATION (flagged, not hidden): this wave wires ONE real Altana
- * wallet (the bootstrap wallet), not a full one-wallet-per-marketplace-agent
- * registry — that needs a DB table (`altana_wallets` or similar) that
- * doesn't exist yet. Granted sessions are cached in-process (Map), not
+ * UPDATED (2026-08-17, hire.ts real wiring): createAgentWallet() now lets a
+ * caller (services/hire.ts's createJob()) provision a FRESH real Altana
+ * wallet per job, funded from the Chapel deployer key and granted its own
+ * scoped session — see hire.ts for the full per-job flow. This does not
+ * replace the bootstrap wallet (still the default when createScopedSession
+ * is called without an explicit wallet/signer) — both paths coexist.
+ *
+ * KNOWN LIMITATION (flagged, not hidden, still applies to fresh per-job
+ * wallets too): granted sessions are cached in-process (Map, now keyed
+ * wallet+signer+session together — see liveSessions banner below), not
  * persisted to Postgres — a restart loses the ability to revoke/execute
- * through a live session by id. Both are real follow-ups, not silent gaps.
+ * through a live session by id (the raw session/signer key material is
+ * deliberately never written to the `sessions` table — only public
+ * metadata is). A real one-wallet-per-marketplace-agent *registry* (reusing
+ * the same wallet across a given agent's repeat hires, rather than minting
+ * a new one per job) is still a real follow-up, not a silent gap.
  *
  * hireErc8183Agent() is wired to the real SDK call but genuinely untested
  * live this wave: it needs (a) a real ERC-8004-registered counterparty
@@ -46,10 +56,14 @@ import {
   erc8183Addresses,
   getErc8183Job,
   hireErc8183Agent as sdkHireErc8183Agent,
+  signerFromPrivateKey,
   type Session as AltanaSession,
+  type Signer as AltanaSigner,
+  type Wallet as AltanaWallet,
 } from '@altananetwork/sdk'
 import { randomUUID } from 'node:crypto'
-import type { Address } from 'viem'
+import type { Address, Hex } from 'viem'
+import { generatePrivateKey } from 'viem/accounts'
 import { parseUnits } from 'viem'
 import { BNB_TESTNET, getAltanaClient, getAltanaWallet, getAltanaWalletSigner } from '../lib/altana-client.js'
 import { getProofLedgerAddress } from '../lib/chain.js'
@@ -63,15 +77,54 @@ export interface CreateScopedSessionInput {
   allowlist: string[]
   spendCapUsd1: number
   durationDays: number
+  /**
+   * The Altana wallet/signer this session is granted on. Defaults to the
+   * bootstrap wallet (ALTANA_WALLET_ADDRESS/PRIVATE_KEY) when omitted — pass
+   * a fresh per-job wallet (see createAgentWallet()) for a genuinely
+   * agent-owned, per-hire wallet instead of reusing the one bootstrap
+   * wallet for every job.
+   */
+  wallet?: AltanaWallet
+  signer?: AltanaSigner
+}
+
+export interface FreshAgentWallet {
+  address: Address
+  /** NEVER log/print this — caller persists it to a gitignored per-job env file (mirrors .env.altana-agent's pattern). */
+  privateKey: Hex
+  signer: AltanaSigner
+  wallet: AltanaWallet
+}
+
+/**
+ * Generates a fresh, self-custodial Altana wallet (a NEW private key,
+ * distinct from the bootstrap ALTANA_WALLET_PRIVATE_KEY) — same mechanism
+ * scripts/altana-live-proof.ts uses. Counterfactual only (no on-chain tx) —
+ * the caller must fund the address before granting a session on it.
+ */
+export async function createAgentWallet(): Promise<FreshAgentWallet> {
+  const privateKey = generatePrivateKey()
+  const signer = signerFromPrivateKey(privateKey)
+  const client = getAltanaClient()
+  const result = await client.createWallet({ signer })
+  logger.info({ address: result.address }, 'altana: fresh agent wallet created (counterfactual)')
+  return { address: result.address, privateKey, signer, wallet: result }
 }
 
 /**
  * Granted Altana sessions, keyed by OUR session id. Process-local cache —
  * see file header "KNOWN LIMITATION". Holds the real SDK Session object
- * (includes the session's own signer), needed by revokeSession()/any future
- * execute-through-session call.
+ * (needed by hireErc8183Agent()'s session-path overload) PLUS the wallet +
+ * admin signer that granted it (needed by revokeSession() — Altana's
+ * `client.revokeSession` is signed by the wallet's admin authority, not the
+ * session's own key, so this must be the SAME wallet/signer used at grant
+ * time — critical now that createJob() grants each job its own fresh
+ * wallet rather than always reusing the one bootstrap wallet).
  */
-const liveSessions = new Map<string, AltanaSession>()
+const liveSessions = new Map<string, { session: AltanaSession; wallet: AltanaWallet; signer: AltanaSigner }>()
+
+/** Either a signature-scoped call, or (for the ERC-8183 hire batch, which touches several selectors on two contracts) a whole-contract grant — still a real, named, non-wildcard-across-contracts scope, never "allow everything". */
+type BuiltCallPermission = { to: Address; signature: string } | { to: Address }
 
 /**
  * Maps our allowlist strings to real Altana CallPermission entries. Only
@@ -79,14 +132,25 @@ const liveSessions = new Map<string, AltanaSession>()
  * (deny-by-default), never silently widened to "allow all calls" (that
  * would be the opposite of a scoped session).
  */
-function buildCallPermissions(allowlist: string[]): { to: Address; signature: string }[] {
-  const permissions: { to: Address; signature: string }[] = []
+function buildCallPermissions(allowlist: string[]): BuiltCallPermission[] {
+  const permissions: BuiltCallPermission[] = []
   for (const entry of allowlist) {
     if (entry === 'ProofLedger.registerDecision') {
       permissions.push({
         to: getProofLedgerAddress(),
         signature: 'registerDecision(uint256,bytes32,uint64)',
       })
+      continue
+    }
+    if (entry === 'Erc8183.hire') {
+      // hireErc8183Agent's real 5-call batch (createJob, registerJob,
+      // setBudget, approve $U, fund — see @altananetwork/sdk's
+      // buildHireCalls) touches several selectors across two contracts, so
+      // this grants whole-contract scope on exactly those two addresses
+      // (still a named, bounded grant — not "allow everything"), rather
+      // than hand-maintaining every selector here.
+      const addresses = erc8183Addresses(BNB_TESTNET.chainId)
+      permissions.push({ to: addresses.commerce }, { to: addresses.paymentToken })
       continue
     }
     throw new Error(
@@ -98,8 +162,8 @@ function buildCallPermissions(allowlist: string[]): { to: Address; signature: st
 
 export async function createScopedSession(input: CreateScopedSessionInput): Promise<Session> {
   const client = getAltanaClient()
-  const wallet = getAltanaWallet()
-  const signer = getAltanaWalletSigner()
+  const wallet = input.wallet ?? getAltanaWallet()
+  const signer = input.signer ?? getAltanaWalletSigner()
 
   const expirySeconds = Math.floor(Date.now() / 1000) + input.durationDays * 24 * 60 * 60
   const callPermissions = buildCallPermissions(input.allowlist)
@@ -122,7 +186,7 @@ export async function createScopedSession(input: CreateScopedSessionInput): Prom
   })
 
   const sessionId = `altana_${randomUUID()}`
-  liveSessions.set(sessionId, grant)
+  liveSessions.set(sessionId, { session: grant, wallet, signer })
 
   logger.info(
     { sessionId, walletAddress: grant.walletAddress, expiry: expirySeconds, tx: grant.transactionHash },
@@ -166,13 +230,13 @@ export async function hireErc8183Agent(
   sessionId: string,
   params: HireErc8183Params,
 ): Promise<HireErc8183Result | null> {
-  const session = liveSessions.get(sessionId)
-  if (!session) {
+  const entry = liveSessions.get(sessionId)
+  if (!entry) {
     logger.warn({ sessionId }, 'altana.hireErc8183Agent: no live session for id — refusing')
     return null
   }
   const result = await sdkHireErc8183Agent(
-    session,
+    entry.session,
     { provider: params.provider, task: params.task, budget: parseUnits(params.budgetUsd1.toString(), 18) },
     { network: BNB_TESTNET },
   )
@@ -185,17 +249,27 @@ export async function hireErc8183Agent(
 export async function revokeSession(
   sessionId: string,
 ): Promise<{ revokedAt: string; tx: string | null } | null> {
-  const session = liveSessions.get(sessionId)
-  if (!session) {
+  const entry = liveSessions.get(sessionId)
+  if (!entry) {
     logger.warn({ sessionId }, 'altana.revokeSession: no live session for id')
     return null
   }
   const client = getAltanaClient()
-  const wallet = getAltanaWallet()
-  const signer = getAltanaWalletSigner()
+  // MUST be the same wallet+signer that granted this session (Altana's
+  // revokeSession is authorized by the wallet's admin authority, not the
+  // session's own key) — never the fixed bootstrap wallet when this session
+  // was granted on a fresh per-job wallet (see liveSessions banner above).
+  const { session, wallet, signer } = entry
 
   const result = await client.revokeSession({ wallet, signer, session, chainId: BNB_TESTNET.chainId })
-  liveSessions.delete(sessionId)
+  // Deliberately NOT deleted from liveSessions (changed 2026-08-17) — mirrors
+  // the Postgres pattern (sessions.revoked_at is set, the row is never
+  // deleted): keeping the entry lets a subsequent call attempt actually
+  // reach the SDK/relay again and get a REAL on-chain/relay-level refusal
+  // (the only thing that actually enforces revocation), instead of merely
+  // failing our own local "is it in the Map" check — a strictly weaker,
+  // less honest proof of revocation working.
+  liveSessions.set(sessionId, entry)
 
   logger.info({ sessionId, tx: result.transactionHash }, 'altana: real session revoked on-chain')
 

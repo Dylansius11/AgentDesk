@@ -15,6 +15,13 @@
       "when": 1786947185278,
       "tag": "0001_fix_proof_records_composite_pk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786959200072,
+      "tag": "0002_add_pending_funding_status",
+      "breakpoints": true
     }
   ]
 }

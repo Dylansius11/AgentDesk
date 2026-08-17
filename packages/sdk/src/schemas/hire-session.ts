@@ -21,6 +21,11 @@ export const JobStatusSchema = z.enum([
   "revoked",
   "failed",
   "expired",
+  // Added 2026-08-17 (hire.ts real wiring): the honest state for "we called
+  // the real ERC-8183 hireErc8183Agent() and it reached the real $U
+  // (Ownable, no public mint/faucet — INTEGRATION.md I4) wall" — never
+  // "funded" when funding did not actually happen.
+  "pending_funding",
 ]);
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 

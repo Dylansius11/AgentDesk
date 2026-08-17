@@ -82,7 +82,16 @@ export interface SessionWire {
   onChainSpendCapEnforced: false
 }
 
-function buildAllowlist(agentId: string): SessionAllowlistEntry[] {
+/**
+ * Exported (2026-08-17) so services/hire.ts's real Altana session flow can
+ * reuse the exact same `sessions.allowlist` jsonb SHAPE (label/contract/
+ * contractAddress/function/agentId/chainId) for real Altana job sessions —
+ * NOT the renderPermissionSentence() text below, which is self-hosted-
+ * specific language ("Enforced by AgentDesk's self-hosted session backend
+ * ... not an Altana Keystore session") that would be actively WRONG for a
+ * real Altana session. hire.ts renders its own honest sentence instead.
+ */
+export function buildAllowlist(agentId: string): SessionAllowlistEntry[] {
   return [
     {
       label: `Register trading decisions for agent #${agentId} on ProofLedger`,

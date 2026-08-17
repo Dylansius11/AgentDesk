@@ -17,7 +17,15 @@
  * HireSession/Job/Session zod schemas, delete this file's duplicated shapes
  * and import from the sdk instead. Keep field names identical to ERD.md so
  * the swap is mechanical.
+ *
+ * PARTIAL HANDOFF (2026-08-17, hire.ts real wiring): packages/sdk now
+ * publishes `HireConfigSchema` (schemas/hire-session.ts) — `Job.config`
+ * below imports that real type instead of duplicating its shape. The rest
+ * of this file (Agent summary/detail, ProofRecord, etc.) is still local per
+ * the note above; only the hire/job surface was reconciled this wave (task
+ * scope).
  */
+import type { HireConfig } from '@agentdesk/sdk'
 
 export type Category = 'grid' | 'rebalance' | 'yield' | 'health'
 export type RiskLevel = 'low' | 'medium' | 'high'
@@ -32,6 +40,12 @@ export type JobStatus =
   | 'revoked'
   | 'failed'
   | 'expired'
+  // Added 2026-08-17 (hire.ts real wiring) — mirrors packages/sdk's
+  // JobStatusSchema + db/schema.ts's jobStatusEnum, same commit. The honest
+  // fundJob() outcome when the real hireErc8183Agent() call hits the
+  // documented $U wall (INTEGRATION.md I4) — never 'funded' unless funding
+  // actually happened.
+  | 'pending_funding'
 export type MetricsWindow = '7d' | '30d' | 'all'
 
 /** agents ⨝ listings ⨝ proof_metrics — the shape GET /v1/agents returns per row. */
@@ -91,24 +105,32 @@ export interface ProofMetrics {
   computedAt: string
 }
 
-/** jobs mirror row (ERC-8183 escrow). */
+/**
+ * jobs mirror row (ERC-8183 escrow). `config` is the real `@agentdesk/sdk`
+ * `HireConfig` shape (updated 2026-08-17, hire.ts real wiring — see
+ * ERD.md §3 same-commit note) — no more local ad hoc shape.
+ */
 export interface Job {
   id: string
   escrowRef: string | null
   agentId: string
   hirerAddress: string
-  config: {
-    amountUsd1: number
-    spendCap: number
-    durationDays: number
-    allowlist: string[]
-    triggers: Record<string, unknown>
-  }
+  config: HireConfig
   status: JobStatus
   feeUsd1: number
   createdAt: string
   updatedAt: string
   completedAt: string | null
+  /**
+   * The real Altana scoped session granted for this job (createJob), if
+   * provisioning succeeded. Null when session provisioning failed
+   * (`sessionError` explains why) — never fabricated.
+   */
+  session: Session | null
+  /** Non-null only if real Altana wallet/session provisioning failed during createJob. */
+  sessionError: string | null
+  /** Non-null only after a fundJob() attempt failed (e.g. the documented $U wall, INTEGRATION.md I4) — never set alongside status='funded'. */
+  fundingBlockedReason: string | null
 }
 
 /** sessions mirror row (Altana Keystore) — drives the Trust Panel sentence. */

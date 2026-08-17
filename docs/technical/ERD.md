@@ -121,8 +121,8 @@ to run it or explicitly approve the agent running it).
 | `escrow_ref` | text | ERC-8183 job identifier on-chain |
 | `agent_id` | text FK | |
 | `hirer_address` | text | |
-| `config` | jsonb | {amount_usd1, spend_cap, duration, allowlist, triggers} |
-| `status` | enum(`created`,`funded`,`active`,`awaiting_attestation`,`completed`,`revoked`,`failed`,`expired`) | mirrors escrow + our UX states |
+| `config` | jsonb | real `@agentdesk/sdk` `HireConfig` object verbatim: `{amountUsd1, spendCapUsd1, spendCapWindow, durationDays, allowlist: AllowlistEntry[]}` (2026-08-17: was the old ad hoc `{amount_usd1, spend_cap, duration, allowlist, triggers}` shape before `hire.ts`/`jobs.ts` were wired to the real sdk schema — see INTEGRATION.md I4) |
+| `status` | enum(`created`,`funded`,`active`,`awaiting_attestation`,`completed`,`revoked`,`failed`,`expired`,`pending_funding`) | mirrors escrow + our UX states; `pending_funding` (added 2026-08-17) = a real `hireErc8183Agent()` call was made and hit the documented `$U` wall (INTEGRATION.md I4) — never `funded` unless funding actually happened |
 | `fee_usd1` | numeric | 3% protocol fee |
 | `created_at`/`updated_at`/`completed_at` | timestamptz | |
 
