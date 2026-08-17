@@ -29,6 +29,14 @@
  * task's final report for why (db:push blocked by the permission
  * classifier) — inserts here use onConflictDoNothing() so they degrade to a
  * harmless no-op against the old single-column PK rather than throwing).
+ *
+ * proof_metrics added (2026-08-17, proof-engine-engineer wave): jobs/metrics.ts
+ * is the ONLY writer of this table (ERD.md §5) — recomputeMetricsForAgent()
+ * upserts one row per (agentId, window). Unlike proof_records this table is
+ * NOT append-only — it's an explicitly "recomputed by keeper; never hand-
+ * edited" materialized view (ERD.md §2), so onConflictDoUpdate() here is
+ * correct, not a violation of CLAUDE.md rule 1 (that rule protects the
+ * on-chain mirror rows, not derived aggregates recomputed from them).
  */
 import {
   bigint,
@@ -51,6 +59,7 @@ export const outcomeStatusEnum = pgEnum('outcome_status', [
   'neutral',
   'expired',
 ])
+export const metricsWindowEnum = pgEnum('metrics_window', ['7d', '30d', 'all'])
 
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
@@ -86,4 +95,24 @@ export const proofRecords = pgTable(
     primaryKey({ columns: [table.id, table.kind] }),
     index('proof_records_agent_id_idx').on(table.agentId),
   ],
+)
+
+// proof_metrics — literal copy of apps/api/src/db/schema.ts's table (same
+// rationale as the banner above: apps never import each other).
+export const proofMetrics = pgTable(
+  'proof_metrics',
+  {
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    window: metricsWindowEnum('window').notNull(),
+    verifiedReturnPct: numeric('verified_return_pct', { precision: 8, scale: 2 }),
+    winRate: numeric('win_rate', { precision: 5, scale: 4 }),
+    maxDrawdownPct: numeric('max_drawdown_pct', { precision: 8, scale: 2 }),
+    tasksResolved: integer('tasks_resolved'),
+    avgResponseMin: numeric('avg_response_min', { precision: 8, scale: 1 }),
+    categoryStat: jsonb('category_stat'),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.agentId, table.window] })],
 )
