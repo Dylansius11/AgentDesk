@@ -72,9 +72,15 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(postgres@3.4.9)
       pino:
         specifier: ^10.3.1
         version: 10.3.1
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
       viem:
         specifier: ^2.55.0
         version: 2.55.16(typescript@5.9.3)(zod@4.4.3)

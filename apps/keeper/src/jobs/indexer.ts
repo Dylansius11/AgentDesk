@@ -8,26 +8,33 @@
  * for reads that don't need to be live (ARCHITECTURE.md §1 boundary rule).
  *
  * WIRED THIS SESSION (Wave 4 local smoke test): real viem
- * `getContractEvents` calls against a real ProofLedger deployment. What's
- * still a session-scoped shim: the destination is lib/decision-store.ts's
- * in-memory map, not a `proof_records` Postgres INSERT — DATABASE_URL isn't
- * provisioned this session. The moment it is (Phase B), this tick should
- * additionally (or instead) write proof_records rows; the shape of what to
- * write is unchanged from the original TODO below.
+ * `getContractEvents` calls against a real ProofLedger deployment.
+ *
+ * WIRED THIS WAVE (2026-08-17, proof-engine-engineer): every observed event
+ * now ALSO writes a real row into Postgres `proof_records` via
+ * db/proof-records.ts (insertDecisionRow / insertOutcomeRow), in addition to
+ * — not instead of — the existing lib/decision-store.ts in-memory mirror.
+ * Decision kept deliberately: jobs/attester.ts's
+ * fetchUnresolvedDecisionsPastDeadline() reads decision-store.ts, not
+ * Postgres, and changing that read path was out of this task's scope (the
+ * task brief explicitly allows either choice as long as the attester's
+ * unresolved-lookup keeps working) — Postgres writes are additive so both
+ * consumers stay correct. Postgres failures are caught and logged, never
+ * allowed to break the in-memory mirror the attester depends on.
  *
  * TODO(Phase B):
- *  - Insert new rows into proofRecords (apps/api/src/db/schema.ts) for both
- *    event kinds, keyed by recordId — this file already imports the real
- *    ProofLedger ABI/address (via @agentdesk/sdk + env.ts) now that
- *    packages/contracts publishes them (see packages/sdk/src/abi/).
  *  - Persist `lastIndexedBlock` in Postgres (a `keeper_state` table — not
  *    yet in ERD.md; propose there when this gets wired) instead of the
  *    in-process module variable used below, so a keeper restart doesn't
  *    re-scan from PROOFLEDGER_DEPLOY_BLOCK every time.
+ *  - Once decision-store.ts's role is reconsidered, fetchUnresolvedDecisions
+ *    PastDeadline() could read `proof_records` directly instead (see that
+ *    file's own header).
  */
 import { proofLedgerAbi } from '@agentdesk/sdk'
+import { insertDecisionRow, insertOutcomeRow } from '../db/proof-records.js'
 import { env, keeperConfigured } from '../env.js'
-import { getPublicClient, getProofLedgerAddress } from '../lib/chain.js'
+import { getChainId, getProofLedgerAddress, getPublicClient } from '../lib/chain.js'
 import { markAttestedFromEvent, upsertDecision } from '../lib/decision-store.js'
 import { logger } from '../logger.js'
 
@@ -92,6 +99,8 @@ export async function runIndexerTick(): Promise<void> {
     }),
   ])
 
+  const chainId = keeperConfigured.database ? await getChainId() : 0
+
   for (const event of decisionEvents) {
     const { recordId, agentId, intentHash, deadline, registeredAt } = event.args
     if (
@@ -114,18 +123,72 @@ export async function runIndexerTick(): Promise<void> {
     })
     logger.info(
       { recordId: recordId.toString(), agentId: agentId.toString(), deadline: deadline.toString() },
-      'indexer: DecisionRegistered observed on-chain (mirrored in-memory — DATABASE_URL not configured this session)',
+      'indexer: DecisionRegistered observed on-chain (mirrored in-memory)',
     )
+
+    try {
+      await insertDecisionRow({
+        recordId,
+        agentId,
+        intentHash,
+        deadline: BigInt(deadline),
+        registeredAt: BigInt(registeredAt),
+        txHash: event.transactionHash ?? undefined,
+        blockNumber: event.blockNumber ?? undefined,
+        chainId,
+      })
+    } catch (err) {
+      logger.error(
+        { recordId: recordId.toString(), err: err instanceof Error ? err.message : err },
+        'indexer: proof_records decision insert failed — in-memory mirror still holds, continuing',
+      )
+    }
   }
 
   for (const event of outcomeEvents) {
-    const { recordId } = event.args
+    const { recordId, agentId, status, pnlUsd1, evidenceHash, attestedAt } = event.args
     if (recordId === undefined) {
       logger.warn({ event }, 'indexer: OutcomeAttested event missing recordId — skipping')
       continue
     }
     markAttestedFromEvent(recordId)
-    logger.info({ recordId: recordId.toString() }, 'indexer: OutcomeAttested observed on-chain (mirrored in-memory)')
+    logger.info(
+      { recordId: recordId.toString() },
+      'indexer: OutcomeAttested observed on-chain (mirrored in-memory)',
+    )
+
+    if (
+      agentId === undefined ||
+      status === undefined ||
+      pnlUsd1 === undefined ||
+      evidenceHash === undefined ||
+      attestedAt === undefined
+    ) {
+      logger.warn(
+        { event },
+        'indexer: OutcomeAttested event missing args needed for proof_records — skipping Postgres write',
+      )
+      continue
+    }
+
+    try {
+      await insertOutcomeRow({
+        recordId,
+        agentId,
+        status,
+        pnlUsd1,
+        evidenceHash,
+        attestedAt: BigInt(attestedAt),
+        txHash: event.transactionHash ?? undefined,
+        blockNumber: event.blockNumber ?? undefined,
+        chainId,
+      })
+    } catch (err) {
+      logger.error(
+        { recordId: recordId.toString(), err: err instanceof Error ? err.message : err },
+        'indexer: proof_records outcome insert failed — in-memory mirror still holds, continuing',
+      )
+    }
   }
 
   lastIndexedBlock = toBlock + 1n

@@ -7,18 +7,22 @@
  * keeper, see ERD.md §5). It must never derive a number from `listings` or
  * any agent-reported field and label it verified.
  *
- * NOT LIVE THIS SESSION — DB not provisioned; returns empty/zeroed stub
- * results, never fabricated-looking numbers (CLAUDE.md rule 3/constraint).
- *
- * TODO(Phase B):
- *  - getLeaderboard(): select proofMetrics ⨝ listings, ordered by
- *    verified_return_pct desc, filtered by category/window; cache 120s.
- *  - getLandingStats(): aggregate counts from agents/proof_records.
- *  - recomputeMetrics() is NOT called from the API — it's the keeper's job
- *    (apps/keeper) triggered after each attestation. Kept here only as the
- *    read-side type contract the keeper's write-side must satisfy.
+ * WIRED THIS WAVE (2026-08-17, proof-engine-engineer):
+ *  - getLandingStats(): real COUNT(*)-style aggregates against
+ *    agents/proof_records/proof_metrics. This is the task's explicit scope
+ *    boundary — simple counts only, no derivation.
+ *  - getLeaderboard(): also wired to a real SELECT (proof_metrics ⨝
+ *    listings, no computed columns) since it's a plain read+join, not a
+ *    derivation — but it will legitimately return an EMPTY list until the
+ *    keeper's recomputeMetricsForAgent() (apps/keeper/src/jobs/metrics.ts)
+ *    is implemented, because no proof_metrics rows exist yet. That
+ *    per-agent rolling-window win-rate/PnL computation engine is explicitly
+ *    OUT OF SCOPE for this task (see this task's final report for the
+ *    follow-up write-up) — do not build it here.
  */
-import { isDatabaseConfigured } from '../db/client.js'
+import { and, desc, eq } from 'drizzle-orm'
+import { getDb, isDatabaseConfigured } from '../db/client.js'
+import { agents, listings, proofMetrics, proofRecords } from '../db/schema.js'
 import type { Category, LandingStats, LeaderboardEntry, MetricsWindow } from '../types/domain.js'
 
 export interface GetLeaderboardParams {
@@ -29,20 +33,73 @@ export interface GetLeaderboardParams {
 export async function getLeaderboard(
   params: GetLeaderboardParams,
 ): Promise<{ entries: LeaderboardEntry[]; stale: boolean }> {
-  void params
   if (!isDatabaseConfigured()) {
     return { entries: [], stale: false }
   }
-  // TODO(Phase B): query proofMetrics ⨝ listings.
-  return { entries: [], stale: false }
+  const db = getDb()
+  if (!db) return { entries: [], stale: false }
+
+  const conditions = [eq(proofMetrics.window, params.window)]
+  if (params.category) conditions.push(eq(listings.category, params.category))
+
+  const rows = await db
+    .select({
+      agentId: proofMetrics.agentId,
+      category: listings.category,
+      verifiedReturnPct: proofMetrics.verifiedReturnPct,
+      winRate: proofMetrics.winRate,
+      tasksResolved: proofMetrics.tasksResolved,
+      window: proofMetrics.window,
+    })
+    .from(proofMetrics)
+    .innerJoin(listings, eq(listings.agentId, proofMetrics.agentId))
+    .where(and(...conditions))
+    .orderBy(desc(proofMetrics.verifiedReturnPct))
+
+  const entries: LeaderboardEntry[] = rows
+    .filter((r) => r.category !== null)
+    .map((r) => ({
+      agentId: r.agentId,
+      category: r.category as Category,
+      verifiedReturnPct: r.verifiedReturnPct === null ? 0 : Number(r.verifiedReturnPct),
+      winRate: r.winRate === null ? 0 : Number(r.winRate),
+      tasksResolved: r.tasksResolved ?? 0,
+      window: r.window,
+    }))
+
+  return { entries, stale: false }
 }
 
 export async function getLandingStats(): Promise<LandingStats> {
-  // TODO(Phase B): aggregate COUNT(*) from agents / proof_records.
+  if (!isDatabaseConfigured()) {
+    return {
+      totalAgents: 0,
+      verifiedAgents: 0,
+      totalDecisionsRegistered: 0,
+      totalOutcomesAttested: 0,
+    }
+  }
+  const db = getDb()
+  if (!db) {
+    return {
+      totalAgents: 0,
+      verifiedAgents: 0,
+      totalDecisionsRegistered: 0,
+      totalOutcomesAttested: 0,
+    }
+  }
+
+  const [agentRows, verifiedRows, decisionRows, outcomeRows] = await Promise.all([
+    db.select({ id: agents.id }).from(agents),
+    db.selectDistinct({ agentId: proofMetrics.agentId }).from(proofMetrics),
+    db.select({ id: proofRecords.id }).from(proofRecords).where(eq(proofRecords.kind, 'decision')),
+    db.select({ id: proofRecords.id }).from(proofRecords).where(eq(proofRecords.kind, 'outcome')),
+  ])
+
   return {
-    totalAgents: 0,
-    verifiedAgents: 0,
-    totalDecisionsRegistered: 0,
-    totalOutcomesAttested: 0,
+    totalAgents: agentRows.length,
+    verifiedAgents: verifiedRows.length,
+    totalDecisionsRegistered: decisionRows.length,
+    totalOutcomesAttested: outcomeRows.length,
   }
 }

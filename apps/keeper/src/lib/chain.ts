@@ -15,18 +15,19 @@
  * account — never logged, never returned from any exported function
  * (CLAUDE.md §4 / logger.ts's redaction list).
  */
+
+import { proofLedgerAbi } from '@agentdesk/sdk'
 import {
   type Address,
   type Chain,
-  type PublicClient,
-  type WalletClient,
   createPublicClient,
   createWalletClient,
   defineChain,
   http,
+  type PublicClient,
+  type WalletClient,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { proofLedgerAbi } from '@agentdesk/sdk'
 import { env, keeperConfigured } from '../env.js'
 
 export { proofLedgerAbi }
@@ -88,7 +89,20 @@ export async function getWalletClient(): Promise<WalletClient> {
 
 export function getProofLedgerAddress(): Address {
   if (!PROOFLEDGER_ADDRESS) {
-    throw new Error('chain: PROOFLEDGER_ADDRESS_MAINNET / PROOFLEDGER_ADDRESS_TESTNET not configured')
+    throw new Error(
+      'chain: PROOFLEDGER_ADDRESS_MAINNET / PROOFLEDGER_ADDRESS_TESTNET not configured',
+    )
   }
   return PROOFLEDGER_ADDRESS
+}
+
+/**
+ * Resolves the actual connected chain id (56 mainnet / 97 Chapel / anything
+ * else e.g. local anvil) — used by db/proof-records.ts to stamp the `agents`
+ * FK-anchor row's chain_id honestly instead of guessing from which env var
+ * happens to be set. Reuses resolveChain()'s cached eth_chainId lookup.
+ */
+export async function getChainId(): Promise<number> {
+  const chain = await resolveChain()
+  return chain.id
 }

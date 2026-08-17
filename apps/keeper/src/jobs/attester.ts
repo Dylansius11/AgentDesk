@@ -37,21 +37,40 @@
  * derives evidenceHash from that real intentHash/deadline — never from
  * anything the agent or the indexer claimed.
  *
+ * WIRED THIS WAVE (2026-08-17, proof-engine-engineer): on a successful
+ * submitAttestation(), this job now ALSO inserts the outcome row into
+ * Postgres `proof_records` directly (via db/proof-records.ts), immediately,
+ * rather than waiting for the indexer's next block-poll tick to observe the
+ * same event — lower latency, and it's the same idempotent insert helper
+ * jobs/indexer.ts uses (onConflictDoNothing), so if the indexer's next tick
+ * also observes this event, the second write is a harmless no-op, not a
+ * duplicate or an error.
+ *
  * TODO(Phase B):
- *  - fetchUnresolvedDecisionsPastDeadline(): once DATABASE_URL exists,
- *    prefer `SELECT ... FROM proof_records` over lib/decision-store.ts.
+ *  - fetchUnresolvedDecisionsPastDeadline(): still reads
+ *    lib/decision-store.ts's in-memory mirror, not `proof_records` —
+ *    unchanged this wave (task brief explicitly allows either choice as
+ *    long as this lookup keeps working; see indexer.ts's header).
  *  - resolveOutcomeFromObjectiveSources(): branch on category —
  *      grid/rebalance/yield → PancakeSwap v3 Quoter/Pool state at deadline block
  *      health → Venus position state (health factor) at deadline block
  *    Never accept a number the agent itself reported.
- *  - On success: insert the outcome row into proof_records mirroring
- *    submitted.tx/block (currently only the in-memory store is updated).
  */
 import { proofLedgerAbi } from '@agentdesk/sdk'
 import { encodeAbiParameters, keccak256 } from 'viem'
+import { insertOutcomeRow } from '../db/proof-records.js'
 import { keeperConfigured } from '../env.js'
-import { getProofLedgerAddress, getPublicClient, getWalletClient } from '../lib/chain.js'
-import { type IndexedDecision, listUnresolvedPastDeadline, markAttestedLocally } from '../lib/decision-store.js'
+import {
+  getChainId,
+  getProofLedgerAddress,
+  getPublicClient,
+  getWalletClient,
+} from '../lib/chain.js'
+import {
+  type IndexedDecision,
+  listUnresolvedPastDeadline,
+  markAttestedLocally,
+} from '../lib/decision-store.js'
 import { logger } from '../logger.js'
 import { enqueueMetricsRecompute } from './metrics.js'
 
@@ -69,9 +88,14 @@ async function fetchUnresolvedDecisionsPastDeadline(): Promise<IndexedDecision[]
 }
 
 /** Resolves an outcome from objective pool/protocol state ONLY — never from agent-reported data. */
-async function resolveOutcomeFromObjectiveSources(decision: IndexedDecision): Promise<ResolvedOutcome | null> {
+async function resolveOutcomeFromObjectiveSources(
+  decision: IndexedDecision,
+): Promise<ResolvedOutcome | null> {
   if (!keeperConfigured.chainRpc) {
-    logger.debug({ recordId: decision.recordId.toString() }, 'attester: chain RPC not configured — cannot resolve')
+    logger.debug(
+      { recordId: decision.recordId.toString() },
+      'attester: chain RPC not configured — cannot resolve',
+    )
     return null
   }
 
@@ -89,7 +113,10 @@ async function resolveOutcomeFromObjectiveSources(decision: IndexedDecision): Pr
   })
 
   if (resolved) {
-    logger.debug({ recordId: decision.recordId.toString() }, 'attester: already resolved on-chain — skipping')
+    logger.debug(
+      { recordId: decision.recordId.toString() },
+      'attester: already resolved on-chain — skipping',
+    )
     markAttestedLocally(decision.recordId)
     return null
   }
@@ -146,7 +173,10 @@ async function submitAttestation(
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
   if (receipt.status !== 'success') {
-    logger.error({ recordId: decision.recordId.toString(), hash }, 'attester: attestOutcome transaction reverted')
+    logger.error(
+      { recordId: decision.recordId.toString(), hash },
+      'attester: attestOutcome transaction reverted',
+    )
     return null
   }
 
@@ -174,8 +204,26 @@ export async function runAttesterTick(): Promise<void> {
       'attester: OutcomeAttested submitted',
     )
 
-    // TODO(Phase B): insert outcome row into proof_records mirroring
-    // submitted.tx/block, then:
+    try {
+      const chainId = await getChainId()
+      await insertOutcomeRow({
+        recordId: decision.recordId,
+        agentId: decision.agentId,
+        status: outcome.status,
+        pnlUsd1: outcome.pnlUsd1,
+        evidenceHash: outcome.evidenceHash,
+        attestedAt: BigInt(Math.floor(Date.now() / 1000)),
+        txHash: submitted.tx,
+        blockNumber: BigInt(submitted.block),
+        chainId,
+      })
+    } catch (err) {
+      logger.error(
+        { recordId: decision.recordId.toString(), err: err instanceof Error ? err.message : err },
+        'attester: proof_records outcome insert failed — on-chain attestation still succeeded, indexer will retry on its next tick',
+      )
+    }
+
     enqueueMetricsRecompute(decision.agentId.toString())
   }
 }

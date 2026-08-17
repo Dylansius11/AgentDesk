@@ -112,10 +112,25 @@ export const developers = pgTable('developers', {
 // proof_records — ProofLedger mirror (append-only, like the chain)
 // ---------------------------------------------------------------------------
 
+// NOTE (2026-08-17, proof-engine-engineer wave): `id` alone cannot be the PK.
+// Each on-chain recordId produces up to TWO rows here over its lifetime — a
+// `kind='decision'` row at registration and a separate `kind='outcome'` row
+// at attestation — because CLAUDE.md rule 1 / ERD.md §3 require proof_records
+// to be strictly INSERT-only (no UPDATE/DELETE grants at the app layer): the
+// outcome can never be written by mutating the decision row in place. Before
+// this change `id` was declared `.primaryKey()` on its own, which made a
+// second row for the same recordId (the outcome) a hard Postgres unique-
+// violation — i.e. attestation could never actually be persisted. Verified
+// against the live Supabase instance before this edit: `proof_records` had
+// zero rows, so widening the PK to (id, kind) here and pushing it via
+// `pnpm --filter api db:push` is a safe, additive schema correction, not a
+// breaking migration over real data. ERD.md §2's `proof_records` PK note
+// must be updated in the same commit as this file (doc contract, CLAUDE.md
+// §4).
 export const proofRecords = pgTable(
   'proof_records',
   {
-    id: bigint('id', { mode: 'number' }).primaryKey(), // on-chain record id
+    id: bigint('id', { mode: 'number' }).notNull(), // on-chain record id (not globally unique alone — see note above)
     agentId: text('agent_id')
       .notNull()
       .references(() => agents.id),
@@ -131,7 +146,10 @@ export const proofRecords = pgTable(
     attestedBlock: bigint('attested_block', { mode: 'number' }),
     raw: jsonb('raw'), // full event payload for audit page
   },
-  (table) => [index('proof_records_agent_id_idx').on(table.agentId)],
+  (table) => [
+    primaryKey({ columns: [table.id, table.kind] }),
+    index('proof_records_agent_id_idx').on(table.agentId),
+  ],
 )
 
 // ---------------------------------------------------------------------------
