@@ -7,6 +7,14 @@
       "env": {
         "PRIVATE_KEY": ""
       }
+    },
+    "altana": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["@altananetwork/mcp"],
+      "env": {
+        "ALTANA_CHAIN": "bnb-testnet"
+      }
     }
   }
 }
