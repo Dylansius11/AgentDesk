@@ -345,6 +345,27 @@ PM gave the user a firm, freshly-re-verified confirmation: contract + proof-engi
 
 ---
 
+## Wave 11 — dispatched 2026-08-17 (metrics engine — the last real gap, no account blocker)
+
+User confirmed: close this out for the hackathon demo. `apps/keeper/src/jobs/metrics.ts`'s `recomputeMetricsForAgent()`/`runMetricsHourlyTick()` are still TODO stubs whose own comments say "not wired this session — DATABASE_URL not provisioned" — stale since Wave 6. `GET /v1/leaderboard` is a real, working route/query (Wave 8) but reads from `proof_metrics`, which nothing has ever written to — real plumbing, empty data.
+
+### Task: Real metrics-computation engine — win rate / verified return / drawdown from proof_records only
+- **Owner:** `proof-engine-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Make `GET /v1/leaderboard` return real, non-empty, honestly-derived numbers — the last gap between "backend done" and "backend done for the full F2-F6 flow."
+- **Scope:**
+  1. Wire `recomputeMetricsForAgent(agentId)` for real: per agent, per window (`7d`/`30d`/`all`), compute `winRate` (wins/resolved), `verifiedReturnPct` (return-weighted over resolved `pnlUsd1`), `tasksResolved` (count), `avgResponseMin` (decision→outcome latency, real timestamps), `maxDrawdownPct` (running peak-to-trough on cumulative pnl) — **from `proof_records` only**, never from `listings` or any agent-reported field (CLAUDE.md rule 3, ERD.md §5's own note on this table). Upsert into `proof_metrics` (real Supabase, already live).
+  2. Wire `runMetricsHourlyTick()`'s real sweep (`SELECT DISTINCT agent_id FROM proof_records`, recompute each).
+  3. **Prove it for real:** trigger a real recompute (reuse existing real `proof_records` data from Waves 8b/10 — no new on-chain tx strictly required, though one is fine if it helps prove the trigger path from `jobs/attester.ts`), independently confirm a real row lands in `proof_metrics` (query Postgres yourself), and confirm `GET /v1/leaderboard` now returns real non-empty data through the actual API.
+  4. **Optional stretch, only if time allows and it doesn't derail the primary scope:** wire one real category's outcome resolution in `jobs/attester.ts`'s `resolveOutcomeFromObjectiveSources()` — Venus health-factor read (a single on-chain read, no swap-path math, simplest of the four categories) instead of the current always-neutral `status=0/pnl=0` placeholder. If attempted, it must be a genuine on-chain read (no API key needed, Venus is a public protocol) — never a fabricated number. If this doesn't fit, leave it as a follow-up and say so.
+- **Explicitly out of scope:** PancakeSwap-based categories' resolution (grid/rebalance/yield — genuinely harder, swap-path/quoter math, not this task unless trivially easy); `apps/web`; mainnet; anything account-gated.
+- **Non-negotiable security constraint:** no private key printed/echoed/logged (this task is mostly read/aggregation, should need minimal-to-no signing).
+- **Inputs:** `apps/keeper/src/jobs/metrics.ts`, `apps/api/src/services/metrics.ts` (the reader side, already real), `docs/technical/SMART-CONTRACT.md` §2.3/§4 (metric definitions, category resolution design), `docs/technical/ERD.md` §5 (sync rules — proof_metrics is keeper-write-only).
+- **Depends on:** nothing new — Postgres + real `proof_records` data both already live.
+- **Completion criteria:** a real `proof_metrics` row exists and is independently verifiable in Postgres; `GET /v1/leaderboard` returns real, non-fabricated, non-empty data.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
