@@ -12,11 +12,23 @@
  * need a given var check for it themselves and report "unconfigured" rather
  * than throwing at import time.
  *
- * NEVER log KEEPER_ATTESTER_KEY or any private key (CLAUDE.md §4). This file
- * exposes it as a value, not a getter that logs — callers must not console.log it.
+ * NEVER log KEEPER_ATTESTER_KEY, DEMO_AGENT_PRIVATE_KEY, or any private key
+ * (CLAUDE.md §4). This file exposes them as values, not getters that log —
+ * callers must not console.log them.
+ *
+ * DEMO_AGENT_PRIVATE_KEY lives in a SEPARATE gitignored file
+ * (`.env.demo-agent`, mirrors packages/contracts/.env.chapel-deploy's
+ * pattern) rather than the shared `.env` — loaded explicitly below since
+ * `dotenv/config` only auto-loads `.env`. This is the self-hosted session
+ * enforcement signer (services/session-enforcement.ts), NOT the
+ * KEEPER_ATTESTER_KEY role — it only ever calls the access-control-free
+ * ProofLedger.registerDecision, never attestOutcome.
  */
 import 'dotenv/config'
+import dotenv from 'dotenv'
 import { z } from 'zod'
+
+dotenv.config({ path: '.env.demo-agent' })
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -53,6 +65,12 @@ const EnvSchema = z.object({
   // TermiX (I9)
   TERMIX_API_KEY: z.string().min(1).optional(),
 
+  // Self-hosted session enforcement signer (INTEGRATION.md I6 honesty note) —
+  // fresh dedicated demo-agent key, NOT the Altana SDK, NOT KEEPER_ATTESTER_KEY.
+  // Public address may be logged; the private key must never be.
+  DEMO_AGENT_ADDRESS: z.string().min(1).optional(),
+  DEMO_AGENT_PRIVATE_KEY: z.string().min(1).optional(),
+
   // web origin, for CORS
   NEXT_PUBLIC_API_URL: z.string().url().optional(),
 })
@@ -82,4 +100,5 @@ export const integrationConfigured = {
   altana: Boolean(env.ALTANA_API_KEY),
   keeperAttester: Boolean(env.KEEPER_ATTESTER_KEY),
   termix: Boolean(env.TERMIX_API_KEY),
+  demoAgentSigner: Boolean(env.DEMO_AGENT_PRIVATE_KEY),
 } as const

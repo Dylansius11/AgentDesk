@@ -19,7 +19,7 @@
 | I3 | **ProofLedger (ours)** | Verified track records — the moat | B | 🔴 | Data Quality + TermiX "track record" |
 | I4 | ERC-8183 escrow jobs | Trustless hire: pay on attested completion | B | 🔴 | Functionality + Altana bonus |
 | I5 | x402 payments (USD1) | Per-task money flow incl. 3% protocol fee | B | 🔴 | Real-world usage |
-| I6 | Altana sessions & Keystore | Spend caps, allowlists, expiry, one-tx revoke | B | 🔴 | Altana track (50k XP) |
+| I6 | Altana sessions & Keystore | Spend caps, allowlists, expiry, one-tx revoke | B | 🟡 (self-hosted interim — see honesty note) | Altana track (50k XP) |
 | I7 | Altana skills (10 production skills) | Execution surface for demo agents | B | 🔴 | Agent Diversity |
 | I8 | BNB Agent Studio (`bnb` CLI) | Create our 4 demo agents fast | B | 🔴 | Agents live on BSC |
 | I9 | TermiX BSC MCP server | BSC execution tools for agents + Advantage Report | B | 🔴 | TermiX track ($10k) |
@@ -87,6 +87,7 @@
   2. **Hire flow** — session created at hire; user sees exact grant; STOP button sends Keystore revoke tx.
   3. **Track checklist** — agents on own Altana wallets ✓, real limits ✓, Keystore-registered ✓, real txs through session keys ✓ (testnet counts, mainnet stronger), in-product revocation ✓, ERC-8183 hire ✓, x402 sell ✓. We tick every box.
 - **Gotchas:** session creation is the riskiest UX moment — wallet-gas + approve + session in one guided flow; failure states must be recoverable (retry each step idempotently).
+- **Honesty note (2026-08-17):** Altana SDK access is pending hackathon-partner onboarding — not a plain self-serve signup, and not available this session. Rather than leave the scoped-session/Trust Panel/revocation mechanism entirely unbuilt, `apps/api/src/routes/v1/sessions.ts` + `services/session-store.ts` + `services/session-enforcement.ts` implement our own **self-hosted** equivalent of the same shape: allowlist (scoped this wave to `ProofLedger.registerDecision` for one agentId), spend cap (stored/rendered, **not** enforced on-chain — ProofLedger has no spend-cap concept), expiry, and real 1-tx-equivalent revoke (Postgres `revoked_at` flip), enforced against the real deployed ProofLedger contract on Chapel — not a simulation. Every API response from these routes carries `enforcedBy: "agentdesk-self-hosted"` so it can never be mistaken for a real Altana Keystore session. Signing uses a fresh dedicated **demo-agent key** (`DEMO_AGENT_PRIVATE_KEY`, distinct from the deployer/attester keys, see env var table) since `registerDecision` has no access control. Proven end-to-end on 2026-08-17: session created via `POST /v1/sessions` → row confirmed in Postgres → `POST /v1/sessions/:id/decisions` submitted two real `registerDecision` txs (recordId 3, 4) → `getDecision` read-back on-chain matched (registrant = demo-agent address, agentId 1, intentHash matched) → `POST /v1/sessions/:id/revoke` flipped `revoked_at` in Postgres → a third decision attempt through the same session was refused with `session_revoked` (HTTP 400) **before any chain call** — confirmed via `nextRecordId()` staying at 5 across the refused attempt. This is the mechanism Altana would provide, built and proven by us in the interim; swapping in the real Altana SDK later is a service-layer change, not a route-shape change.
 
 ## I7 · Altana skills — execution surface
 
@@ -149,6 +150,8 @@ PROOFLEDGER_ADDRESS_MAINNET=
 PROOFLEDGER_ADDRESS_TESTNET=
 ERC8004_REGISTRY_ADDRESS=
 PROTOCOL_FEE_BPS=300     # 3%
+DEMO_AGENT_ADDRESS=      # self-hosted session enforcement signer (I6 honesty note) — public, informational
+DEMO_AGENT_PRIVATE_KEY=  # NEVER a real value in this file — lives only in gitignored apps/api/.env.demo-agent
 # apps/keeper (also reads DATABASE_URL / BSC_RPC_URL / BSC_TESTNET_RPC_URL /
 # PROOFLEDGER_ADDRESS_* / KEEPER_ATTESTER_KEY above)
 KEEPER_POLL_INTERVAL_MS=60000       # indexer/attester/session-watcher loop cadence (ARCHITECTURE.md §4.3)

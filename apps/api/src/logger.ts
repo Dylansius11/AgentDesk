@@ -4,10 +4,11 @@
  * Single pino instance for the API (ARCHITECTURE.md §6 observability: "pino
  * logs → Railway dashboard"). Pretty-printed in dev, JSON in production.
  *
- * Redaction: KEEPER_ATTESTER_KEY and anything named/nested as *apiKey /
- * *secret / *privateKey must never reach a log line (CLAUDE.md §4). Callers
- * should still never pass secret values as log fields — this redaction list
- * is a backstop, not a license to log secrets under a "safe-looking" key.
+ * Redaction: KEEPER_ATTESTER_KEY, DEMO_AGENT_PRIVATE_KEY, and anything
+ * named/nested as *apiKey / *secret / *privateKey must never reach a log
+ * line (CLAUDE.md §4). Callers should still never pass secret values as log
+ * fields — this redaction list is a backstop, not a license to log secrets
+ * under a "safe-looking" key.
  */
 
 import pino from 'pino'
@@ -19,6 +20,8 @@ export const logger = pino({
     paths: [
       'KEEPER_ATTESTER_KEY',
       '*.KEEPER_ATTESTER_KEY',
+      'DEMO_AGENT_PRIVATE_KEY',
+      '*.DEMO_AGENT_PRIVATE_KEY',
       '*.apiKey',
       '*.api_key',
       '*.secret',

@@ -19,7 +19,7 @@
 | Agent identity (ERC-8004) | ✅ registry (external) | `agents` cache row | Discovery speed + rate limits |
 | Agent listing metadata (our marketplace layer: description, category tag, pricing display) | ❌ | `listings` | Not identity; mutable marketing copy; 8004scan URI covers basics, we enrich |
 | Hiring escrow state (ERC-8183) | ✅ escrow contract (external, via Altana) | `jobs` mirror | UX speed; chain remains truth |
-| Session grants/revocations | ✅ Altana Keystore | `sessions` mirror | Trust Panel rendering |
+| Session grants/revocations | ✅ Altana Keystore (target) — **interim: `sessions` row IS authoritative**, self-hosted, no Keystore yet (INTEGRATION.md I6 honesty note, 2026-08-17) | `sessions` mirror | Trust Panel rendering |
 | **Decisions & outcomes (proofs)** | ✅ **ProofLedger (ours)** | `proof_records` mirror + `proof_metrics` derived | The moat. Metrics computed **only** from on-chain rows |
 | Payments (x402 receipts) | ✅ settlement txs | `receipts` (metadata + links) | History/UX |
 | User accounts | — (wallet = identity) | `users` (preferences, watchlist) | Convenience only |
@@ -127,6 +127,8 @@
 | `revoked_at` | timestamptz null | + revoke tx |
 | `keystore_tx` | text | registration link |
 
+> **Interim note (2026-08-17):** until real Altana access, this table is itself the source of truth (not a mirror) — `services/session-store.ts` writes it directly and `services/session-enforcement.ts` enforces straight from it before any chain call. `keystore_tx` stays null; every API response marks itself `enforcedBy: "agentdesk-self-hosted"` so it's never confused with a real Keystore registration. `job_id` currently points at a minimal synthetic `jobs` row inserted for FK/cardinality reasons only (services/hire.ts's real hire flow is still unwired) — see session-store.ts's file banner.
+
 ### `receipts` — x402 payment records
 
 | Column | Type | Notes |
@@ -181,6 +183,11 @@ Key cardinalities: 1 agent → 0..1 listing (unlisted agents appear only in 8004
 | `POST /v1/publish` | agents(owner sig), developers | listings, developers | claim flow |
 | `GET /v1/verify/:agentId` | proof_records raw | — | audit page |
 | `GET /v1/stats` | aggregate counters | — | landing counters |
+| `POST /v1/sessions` | — | agents (upsert FK anchor), jobs (synthetic companion row), sessions | **Wired 2026-08-17.** Self-hosted scoped-session create (INTEGRATION.md I6 honesty note) — allowlist fixed this wave to `ProofLedger.registerDecision` for one agentId; spend cap stored, not chain-enforced. Not in the original v1.0 API sketch — closes the gap flagged since Wave 1B. |
+| `GET /v1/sessions/:id` | sessions | — | real row; response carries `enforcedBy: "agentdesk-self-hosted"` |
+| `GET /v1/sessions/:id/permission-sentence` | sessions | — | Trust Panel sentence, rendered only from the session row |
+| `POST /v1/sessions/:id/revoke` | sessions | sessions.revoked_at | idempotent — revoking twice is a no-op, not an error |
+| `POST /v1/sessions/:id/decisions` | sessions | proof (chain only — no `proof_records` write yet, indexer is the writer per §5) | "agent runner" gate: services/session-enforcement.ts checks revoked/expired/allowlist in Postgres and refuses **before** any chain call; only if permitted does it submit a real `ProofLedger.registerDecision` tx (signed by `DEMO_AGENT_PRIVATE_KEY`, not `KEEPER_ATTESTER_KEY`) |
 
 ## 5. Sync rules (who writes what, when)
 
@@ -200,3 +207,4 @@ Key cardinalities: 1 agent → 0..1 listing (unlisted agents appear only in 8004
 | Date | Change | Commit |
 |---|---|---|
 | 2026-08-16 | Initial ERD v1.0 | `docs: ERD` |
+| 2026-08-17 | Wired `POST/GET /v1/sessions*` + `POST /v1/sessions/:id/decisions` to real Postgres + real Chapel ProofLedger calls (self-hosted session enforcement, INTEGRATION.md I6 honesty note); closes the standalone-sessions-route gap flagged since Wave 1B | (pending PM commit) |

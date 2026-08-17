@@ -17,6 +17,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@agentdesk/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.2)
@@ -38,6 +41,9 @@ importers:
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
+      viem:
+        specifier: ^2.55.0
+        version: 2.55.16(typescript@5.9.3)(zod@4.4.3)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
