@@ -138,3 +138,118 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 ```
 
 > ⚠️ Contract addresses & exact 8004scan endpoints get pinned in Week 1 of Phase B — update this table **in the same commit** that pins them.
+
+---
+
+## I14 · Cost & free-tier matrix (verified 2026-08-17)
+
+**The whole BNB stack is free for the hackathon.** Our only real costs are infra we'd pay anyway (hosting/DB) and on-chain gas.
+
+| Integration | Free? | Detail | Source |
+|---|---|---|---|
+| **Altana SDK** (`@altananetwork/sdk`) | ✅ Free, **no API key, no hosted backend** | "runs anywhere JavaScript runs… no API key and no hosted backend." Sessions + Keystore ops cost only BSC gas. Contracts CertiK-audited (Jul 2026) | docs.altana.network |
+| **Altana skills** (all 10) | ✅ Free | Site tagline: "…always running inside limits you set. **Free to use**." Registry: `skills.altana.network/index.json` (machine-readable; each skill is a `SKILL.md`) | skills.altana.network |
+| **Altana MCP server** (`@altananetwork/mcp`) | ✅ Free | Runs under **Bun** (`bunx`, NOT `npx` — npx fails on TS syntax). 17 tools. Ships a Claude Code skill too | docs.altana.network/mcp/install |
+| **`@bnb-chain/mcp`** (official BNB MCP) | ✅ Free, MIT | `npx -y @bnb-chain/mcp@latest` (v1.4.0). Optional `PRIVATE_KEY` env for writes. Based on TermiX's bsc-mcp | npmjs.com/package/@bnb-chain/mcp |
+| **TermiX bsc-mcp** | ✅ Free, MIT | `npx -y bsc-mcp@latest`. Same toolset as @bnb-chain/mcp | github.com/TermiX-official/bsc-mcp |
+| **x402 / B402** | ✅ Free (open protocol) | You pay only the actual task payments in USD1 (+ BSC gas). No platform fee on the protocol itself | github.com/Coinbase/x402 |
+| **PancakeSwap / Venus / Aave / Lista** | ✅ Free (protocols) | No integration fee; you pay swap/LP gas + position value. Venus vUSDT core pool: `0xfD5840Cd36d94D7229439859C0112a4185BC0255` (from the installed Altana venus-lending skill) | docs.venus.io, skills.altana.network |
+| **ERC-8004 / ERC-8183** | ✅ Free (open standards) | Registration = mint tx on BSC (gas only) | eips.ethereum.org |
+| **8004scan API (AltLayer)** | 🎁 Free for participants | Hackathon grants **Pro tier free: 500 req/min, 100k req/day** | bnbchain.org hackathon page |
+| **BNB Agent Studio (`bnb` CLI)** | ✅ Free tooling | Agent creation, ERC-8004 identity, x402 wiring — free. **Runtime** costs are AWS AgentCore's (below) | bnbchain.org/en/bnb-agent-studio |
+| **AWS AgentCore runtime** | ⚖️ Metered, ~free for us | Consumption-based. Harness free; **new AWS accounts get up to $200 credits**. Runtime billed per-second only while CPU-active (idle/I-O wait = free): ~$0.0895/hr per vCPU + $0.00945/hr per GB. Registry free-tier: 5k agents, 1M searches/mo. **$200 covers the entire hackathon easily.** | aws.amazon.com/bedrock/agentcore/pricing |
+| **Supabase / Vercel / Railway** | ✅ Free tiers | Supabase 500MB Postgres, Vercel Hobby, Railway trial — all sufficient for MVP | their pricing pages |
+
+**Bottom line: $0 cash outlay required to reach submission day** (AWS free credits cover runtime; everything else is free or gas-only).
+
+---
+
+## I15 · MCP connect-in guide (how to wire each server)
+
+### 1. Official BNB Chain MCP (`@bnb-chain/mcp`) — chain ops + ERC-8004
+
+Paste into Claude Code (`claude mcp add-json bnbchain '<json>'`), Cursor (`.cursor/mcp.json`), or Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "bnbchain": {
+      "command": "npx",
+      "args": ["-y", "@bnb-chain/mcp@latest"],
+      "env": {
+        "PRIVATE_KEY": "<wallet key ONLY on testnet/fresh wallet, for write ops>",
+        "RPC_URL": "https://bsc-dataseed.bnbchain.org",
+        "API_KEY": "<BSCScan key, optional>"
+      }
+    }
+  }
+}
+```
+
+**Gives:** blocks, transactions, contracts (ABI fetch + call/deploy), ERC-20/NFT transfers, wallet ops (create, balance, transfer), **ERC-8004 agent registration/lookup**, Greenfield storage. Chain switch via `--CHAIN_ID` (56 mainnet / 97 Chapel testnet). **Use:** instant chain reads during dev; register/re-register demo agents without leaving the IDE.
+
+### 2. TermiX BSC MCP (`bsc-mcp`) — same engine, TermiX-flavored
+
+```json
+{
+  "mcpServers": {
+    "bsc-mcp": {
+      "command": "npx",
+      "args": ["-y", "bsc-mcp@latest"],
+      "env": { "PRIVATE_KEY": "<optional, writes>", "RPC_URL": "https://bsc-dataseed.bnbchain.org" }
+    }
+  }
+}
+```
+
+**Use:** the TermiX track's reference stack — mentioning/using it in the Advantage Report signals stack depth to a sponsor judge. (Official `@bnb-chain/mcp` is built on this repo.)
+
+### 3. Altana MCP (`@altananetwork/mcp`) — sessions, skills, Keystore, ERC-8183
+
+⚠️ **Must run under Bun, not npx** (ships as TS; npx fails). Install Bun: `powershell -c "irm bun.sh/install.ps1 | iex"` then:
+
+```json
+{
+  "mcpServers": {
+    "altana": {
+      "command": "bunx",
+      "args": ["@altananetwork/mcp@latest"]
+    }
+  }
+}
+```
+
+**Gives (17 tools):** create/inspect/revoke **scoped sessions**, list/invoke **Altana skills**, Keystore reads, **`hireErc8183Agent`** flow, x402 `fetchWithX402`. **Use:** drive the entire agent-side execution surface from Claude Code during Phase B — create a session, run a PancakeSwap trade through it, revoke it, all conversationally.
+
+### Which one when?
+
+| Task | Use |
+|---|---|
+| Chain reads/writes, ERC-8004 registration, Greenfield | `@bnb-chain/mcp` |
+| Agent execution (sessions, skills, x402, ERC-8183 hires) | `@altananetwork/mcp` |
+| TermiX Advantage Report context | `bsc-mcp` (and cite it) |
+
+---
+
+## I16 · Hackathon tracks & participant perks (Build the Era, verified 2026-08-17)
+
+**Tracks (additive — one build can win multiple):**
+
+| Track | Prize | Judging focus |
+|---|---|---|
+| BNB main track | **$30,000 USDT** | Functionality (ease of discover+hire, zero Agent Studio knowledge), Data Quality (beyond basic counts), Agent Diversity (all 4 categories equal depth) + real-world usage |
+| TermiX | **$10,000** ($6k/$3k/$1k) | Value of services 30% · proven advantage (Advantage Report) 30% · high-stakes track record 20% · marketplace quality 20% |
+| PancakeSwap | **1,000 CAKE** | Real benefit to traders/LPs; funds never at risk beyond configuration |
+| Altana | **50,000 XP** | Agents on own Altana wallets, real session-key txs (mainnet > testnet), Keystore registration, in-product revocation; bonuses for ERC-8183 `hireErc8183Agent` + x402/B402 selling |
+| AltLayer | API credits + AltLLM credits | 8004scan usage depth |
+
+**Grand prize:** winner becomes the **official BNB Agent Studio Marketplace** — standalone product, own brand & team, BNB backing.
+
+**Participant perks (free, just for joining):**
+- **8004scan Pro tier** — 500 req/min, 100k req/day (normally paid)
+- **AltLLM credits** (AltLayer)
+- **Altana** quickstart, testnet faucet, workshops/office-hours during the hackathon
+- **TermiX** BSC MCP + Agent.family access
+- Dev/support: official hackathon Discord + BNB Chain dev docs (docs.bnbchain.org)
+
+Source: <https://www.bnbchain.org/en/hackathons/smart-money-era>
