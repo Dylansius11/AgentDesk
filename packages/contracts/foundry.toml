@@ -37,7 +37,10 @@ bsc_chapel = "${BSC_CHAPEL_RPC_URL}"
 bsc_mainnet = "${BSC_MAINNET_RPC_URL}"
 
 [etherscan]
-bsc_chapel = { key = "${BSCSCAN_API_KEY}", chain = 97, url = "https://api-testnet.bscscan.com/api" }
-bsc_mainnet = { key = "${BSCSCAN_API_KEY}", chain = 56, url = "https://api.bscscan.com/api" }
+# BscScan's classic V1 verify API (api[-testnet].bscscan.com/api) is deprecated and returns
+# non-JSON — verification only succeeds against the unified Etherscan V2 API. Confirmed
+# 2026-08-17 verifying the live Chapel ProofLedger deployment (see INTEGRATION.md I3).
+bsc_chapel = { key = "${BSCSCAN_API_KEY}", chain = 97, url = "https://api.etherscan.io/v2/api?chainid=97" }
+bsc_mainnet = { key = "${BSCSCAN_API_KEY}", chain = 56, url = "https://api.etherscan.io/v2/api?chainid=56" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
