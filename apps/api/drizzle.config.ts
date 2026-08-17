@@ -8,6 +8,12 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
+    // db:push runs DDL — prefer the session-mode/direct connection (DIRECT_URL) since
+    // pgbouncer transaction-mode pooling (DATABASE_URL) doesn't reliably support DDL.
+    // The app's own runtime queries still use DATABASE_URL (see src/db/index.ts).
+    url:
+      process.env.DIRECT_URL ??
+      process.env.DATABASE_URL ??
+      'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
 })

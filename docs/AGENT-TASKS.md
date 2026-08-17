@@ -173,6 +173,36 @@ Chapel deploy is staged and ready (Wave 3) but paused — the funded balance is 
 
 ---
 
+## Wave 6 — dispatched 2026-08-17 (user provided real Supabase + BscScan credentials)
+
+User pasted real Supabase pooler credentials and a real BscScan API key directly in chat. PM stored them immediately into gitignored local files (never re-echoed): `apps/api/.env` (`DATABASE_URL`/`DIRECT_URL`, password percent-encoded — raw value had an unescaped `@` that would've broken URL parsing) and `packages/contracts/.env.chapel-deploy` (`BSCSCAN_API_KEY` appended to the existing gitignored deploy-key file). `apps/api/drizzle.config.ts` updated to prefer `DIRECT_URL` (session-mode pooler, port 5432) for `db:push`/`db:generate` since pgbouncer transaction-mode (`DATABASE_URL`, port 6543) doesn't reliably support DDL — app runtime queries still use `DATABASE_URL`. User then explicitly redirected PM to dispatch agents for the actual push/verify work rather than run it directly — correcting a protocol lapse (PM had started running `pnpm db:push` by hand after getting AskUserQuestion confirmation; user wants specialist-agent execution per the standing protocol, not PM doing execution work directly).
+
+### Task: Push real Postgres schema to Supabase
+- **Owner:** `bnb-stack-engineer`
+- **Status:** ✅ **done, PM-verified independently.** Re-ran my own read-only introspection query (fresh Node script, `information_schema.tables`, deleted after use) against the real Supabase project — confirmed all 12 tables exist and match the agent's report exactly: `advantage_reports, agents, developers, events, jobs, listings, proof_metrics, proof_records, receipts, sessions, users, watchlist`. Agent's write-proof (throwaway insert+delete on `users`) and separate confirmation that the app's actual runtime `pingDatabase()` (pooled `DATABASE_URL`) works independently of the DDL (`DIRECT_URL`) connection both accepted without re-running — introspection was the load-bearing claim and that's independently confirmed. `apps/api/.env` never appeared in `git status` (correctly gitignored) and was never echoed by either of us. `apps/api/drizzle.config.ts`'s `DIRECT_URL`-preference edit (made by PM before dispatch) committed alongside this.
+- **Objective:** Run the already-generated drizzle schema (`apps/api/drizzle/0000_youthful_white_tiger.sql`, matches ERD.md's 12 tables) against the real Supabase project the user just provisioned.
+- **Scope:** `cd apps/api && pnpm db:push` (drizzle-kit, config already points at `DIRECT_URL` for DDL); confirm the 12 tables actually exist post-push via a read-only introspection query (not by trusting drizzle-kit's stdout alone); confirm `apps/api`'s own runtime DB client (`src/db/index.ts` or equivalent) can open a connection using `DATABASE_URL` (the pooled one) separately from the DDL connection.
+- **Non-negotiable security constraint:** `apps/api/.env` holds real credentials — NEVER print/echo/cat its contents or the connection strings in any command, log, or report. Source it via normal dotenv loading (drizzle-kit and the app both already do this) or scoped shell sourcing only. Only table/column names and row counts may appear in your report — never the connection string.
+- **Explicitly out of scope:** writing any seed data beyond what's needed to prove connectivity (e.g. one throwaway row you clean up is fine as a connectivity proof, but don't build out real fixture-seeding — that's a separate future task); touching `apps/web`; touching contracts.
+- **Inputs:** `apps/api/drizzle.config.ts`, `apps/api/drizzle/0000_youthful_white_tiger.sql`, `apps/api/.env` (already populated).
+- **Outputs:** confirmation the schema is live (table list), brief report of what `db:push` actually did (created vs. no-op).
+- **Depends on:** nothing — schema + credentials both already exist.
+- **Completion criteria:** all 12 ERD tables exist on the real Supabase Postgres instance, independently confirmed via a read query, not just trusted from `db:push`'s exit code.
+
+### Task: BscScan-verify the live Chapel ProofLedger contract
+- **Owner:** `proof-engine-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Verify the already-deployed Chapel contract's source on BscScan — closes the one known gap logged in `INTEGRATION.md` I3 from Wave 3.
+- **Scope:** contract is already live at `0x2a55f63dE4b1ac19a43d05A1B954E2569D4CB523` (chain 97) — do NOT redeploy. Use `forge verify-contract` (or `pnpm --filter contracts deploy:chapel` re-run with `--verify` only if the script is idempotent against an existing deployment — check first, prefer the standalone `forge verify-contract` command against the existing address to avoid any risk of a second deployment). `BSCSCAN_API_KEY` is now in `packages/contracts/.env.chapel-deploy` — source it in a scoped subshell, never print it. Constructor args were `(admin, attester)` = `(0x3E30AA39525ec6cD0C8054f53fCF0D7e952D4045, 0xbc5a13b541c20e2C95b89bC30EA0Cb6538faeCD0)` — re-derive/encode these yourself from `Deploy.s.sol` rather than trusting this restated pair blindly.
+- **Non-negotiable security constraint:** same as always — private keys in the same file must never be printed; the BscScan API key itself is lower-sensitivity than a private key but still should not be echoed in full in your report (fine to confirm "sourced successfully" without printing the value).
+- **Explicitly out of scope:** any new deployment (mainnet or a second Chapel instance); mainnet verification (no mainnet deploy exists).
+- **Inputs:** `packages/contracts/.env.chapel-deploy`, `packages/contracts/exported/addresses.chapel.json`, `packages/contracts/script/Deploy.s.sol`.
+- **Outputs:** a working BscScan verification (link to the verified contract page), update `docs/technical/INTEGRATION.md` I3 to note verification is done (remove/update the "no BSCSCAN_API_KEY" gap note) and add the BscScan link.
+- **Depends on:** nothing — contract already live.
+- **Completion criteria:** BscScan shows verified source for the live contract; PM can independently confirm via the public BscScan page.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
