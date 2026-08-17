@@ -1,0 +1,169 @@
+/* Site navbar — fixed top bar that becomes a floating frosted pill on scroll */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid transparent;
+  pointer-events: none;
+  transition:
+    margin 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    border-radius 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+/* floating frosted pill once the page scrolls */
+.navbarFloating {
+  margin: 12px 16px 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-color: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+  color: #000000;
+  text-decoration: none;
+}
+
+.logoIcon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.brand {
+  display: none;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #000000;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 12px;
+}
+
+.navLink {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.navLink:hover {
+  color: #f0b90b;
+  background: rgba(240, 185, 11, 0.08);
+}
+
+.systemsButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px 4px 4px;
+  background: #f4f4f6;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.systemsCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #000000;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.systemsCircle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.systemsLabel {
+  display: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: #000000;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .navbar {
+    padding: 24px 32px;
+  }
+
+  .logoIcon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .navbarFloating {
+    margin: 16px 32px 0;
+    padding: 10px 14px;
+  }
+
+  .navLeft {
+    gap: 12px;
+  }
+
+  .brand {
+    display: inline;
+  }
+
+  .menuCircle,
+  .systemsCircle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tagsPill {
+    display: inline-flex;
+  }
+
+  .systemsLabel {
+    display: inline;
+  }
+}

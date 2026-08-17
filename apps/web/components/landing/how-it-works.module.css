@@ -1,0 +1,203 @@
+/* How it works — sticky horizontal card scroll: vertical scroll drives the
+ * panel track leftward, one full-viewport panel per step */
+
+.outer {
+  scroll-margin-top: 80px;
+}
+
+.intro {
+  padding: 72px 0 16px;
+}
+
+/* (n + 1) viewports: n viewports of pinned scroll — one card each — then the
+ * final viewport is the physical space the sticky needs to release */
+.runway {
+  position: relative;
+  height: 400vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: svh fallback for mobile browser chrome */
+  height: 400svh;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: svh fallback for mobile browser chrome */
+  height: 100svh;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  height: 100%;
+}
+
+/* width: max-content makes the track as wide as its n*100vw panels —
+ * translateX percentages are relative to the track's own width, so without
+ * this the track stays viewport-wide and the panels never travel far enough */
+.track {
+  display: flex;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+}
+
+.panel {
+  flex: 0 0 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  padding: 96px 16px 96px;
+  box-sizing: border-box;
+}
+
+.index {
+  font-size: clamp(3.5rem, 8vw, 6rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #000000;
+}
+
+.body {
+  margin: 0;
+  max-width: 480px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+/* --- vignettes (hero pill vocabulary) --- */
+
+.vignette {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 16px;
+  background: #f4f4f6;
+  border-radius: 16px;
+}
+
+.agentRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.agentDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #000000;
+}
+
+.verifiedPill {
+  padding: 5px 12px;
+  background: #000000;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.limitPill {
+  padding: 7px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.activeRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.activeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #000000;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.stopPill {
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #000000;
+}
+
+/* --- progress affordance --- */
+
+.progressTrack {
+  position: absolute;
+  bottom: 28px;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.progressBar {
+  height: 100%;
+  background: #000000;
+  transform-origin: left;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
+}
+
+@media (min-width: 768px) {
+  .intro {
+    padding: 120px 0 24px;
+  }
+
+  .panel {
+    gap: 18px;
+    padding: 96px clamp(32px, 8vw, 120px);
+  }
+
+  .progressTrack {
+    left: 32px;
+    right: 32px;
+    bottom: 36px;
+  }
+}

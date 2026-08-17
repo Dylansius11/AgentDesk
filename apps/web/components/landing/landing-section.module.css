@@ -1,0 +1,50 @@
+/* Shared landing-section shell — the hero's design language, section-sized */
+
+.section {
+  padding: 72px 0;
+  scroll-margin-top: 80px;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.eyebrowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #000000;
+  flex-shrink: 0;
+}
+
+.heading {
+  margin: 16px 0 0;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #000000;
+}
+
+@media (min-width: 768px) {
+  .section {
+    padding: 120px 0;
+  }
+
+  .container {
+    padding: 0 32px;
+  }
+}
