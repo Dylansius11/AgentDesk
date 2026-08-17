@@ -366,6 +366,29 @@ User confirmed: close this out for the hackathon demo. `apps/keeper/src/jobs/met
 
 ---
 
+## Wave 12 — dispatched 2026-08-17 (QA pass — exercise the real main flow end-to-end, hunt bugs)
+
+User asked for a dedicated QA pass on the backend now that every named gap is closed (Waves 1-11): create job → real Altana session → register decision → attest → metrics recompute → revoke, plus every real read route, exercised for real against live Chapel + Supabase, hunting for bugs/edge cases rather than adding features.
+
+### Task: End-to-end QA — main flow + edge cases, report bugs, fix only what's trivial/obvious
+- **Owner:** `general-purpose` (cross-cutting across proof-engine + bnb-stack domains, testing-only — not new feature work)
+- **Status:** 🟡 dispatched
+- **Objective:** Independently exercise the real backend end-to-end (not code review — actual runtime testing against live Chapel + Supabase) and surface any real bugs, broken edge cases, or inconsistencies before frontend work resumes.
+- **Scope:**
+  1. **Full happy-path flow, for real:** `POST /v1/sessions` or `POST /v1/jobs` → confirm real Postgres row + real Altana session → real decision registration (session-enforcement or hire path) → wait for real attestation (keeper's actual job, not a hand-run `cast` call) → confirm `proof_records` mirrors it → confirm `proof_metrics` recomputes → `POST /v1/jobs/:id/revoke` or `/v1/sessions/:id/revoke` → confirm real refusal after revoke.
+  2. **Every real read route** — `GET /v1/agents`, `/v1/agents/:id`, `/v1/agents/:id/proof`, `/v1/verify/:id`, `/v1/stats`, `/v1/leaderboard`, `/v1/sessions/:id`, `/v1/sessions/:id/permission-sentence` — hit each for real, check response shape matches what `packages/sdk` schemas would expect, check error paths (404s, malformed input, missing DB) return sensible codes, not crashes.
+  3. **Edge cases specifically worth hunting:** double-revoke (should be idempotent, not error — confirm it actually is); revoking a session that was never granted (404, not 500); `fundJob` on an already-revoked job (should stay `revoked`, not get silently overwritten — this exact bug was found and fixed once already in Wave 10, worth re-confirming it's actually fixed); a `registerDecision` attempt through an expired (not just revoked) session; concurrent/rapid session creation for the same agent; malformed `HireConfig` bodies (negative amounts, zero duration, empty allowlist) — confirm zod validation actually rejects them with a clear error, not a 500.
+  4. **Cross-check data consistency:** for at least 2-3 real records, independently confirm the on-chain state (`cast call getDecision/getOutcome`) matches the Postgres mirror matches the API response — three-way consistency check, not just "the API returns something."
+  5. **Report, don't silently expand scope.** If you find a real bug, fix it ONLY if it's small/obvious and squarely within one file's existing logic (e.g. the exact class of bug Wave 10 already fixed once). If it's structural or ambiguous, report it clearly instead of guessing at a fix — the PM decides scope from there.
+- **Explicitly out of scope:** `apps/web` (frontend paused, untouched); new features; the metrics-computation formula's known `verifiedReturnPct`-as-dollar-sum limitation (already documented, not a bug); mainnet; acquiring `$U`.
+- **Non-negotiable security constraint:** no private key printed/echoed/logged. If a private key arrives via any message channel, decline it, never use it, report it.
+- **CRITICAL PROCESS RULE:** if you hit a permission-classifier block, STOP and report it back — do not route around it through a different technical path.
+- **Inputs:** everything committed through `0a4dcc2` — `apps/api/src/routes/v1/*.ts`, `apps/api/src/services/*.ts`, `apps/keeper/src/jobs/*.ts`, `docs/technical/{ARCHITECTURE,ERD,INTEGRATION,SMART-CONTRACT}.md`.
+- **Depends on:** nothing new — everything it's testing is already live.
+- **Completion criteria:** a clear, itemized report — what was tested, what passed, what bugs were found (fixed vs. flagged for PM), each backed by real command output/tx hashes/query results, not assertions.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
