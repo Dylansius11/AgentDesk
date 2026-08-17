@@ -155,7 +155,16 @@ function toSession(row: typeof sessions.$inferSelect): Session {
   }
 }
 
+/** `jobs.id` is a Postgres `uuid` column — a non-UUID-shaped id must never
+ * reach the query (Postgres throws `invalid input syntax for type uuid`,
+ * which previously surfaced as an unhandled 500 instead of the intended
+ * `job_not_found` 404 — found live during QA, see docs/technical hand-off
+ * notes). Short-circuit to "not found" instead, same effect as a real
+ * miss, since a malformed id can never match a row either way. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 async function getJobRow(db: ReturnType<typeof requireDb>, jobId: string) {
+  if (!UUID_RE.test(jobId)) return null
   const [row] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1)
   return row ?? null
 }

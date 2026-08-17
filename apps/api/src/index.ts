@@ -9,6 +9,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
 import { pingDatabase } from './db/client.js'
 import { env, integrationConfigured } from './env.js'
 import { logger } from './logger.js'
@@ -81,6 +82,15 @@ app.route('/v1', v1Router)
 app.notFound((c) => c.json({ error: 'not_found', path: c.req.path }, 404))
 
 app.onError((err, c) => {
+  // Hono itself throws HTTPException (e.g. "Malformed JSON in request body"
+  // from zValidator's JSON parse step) with its own intended status —
+  // previously this branch always forced 500, turning a client-side bad
+  // request into a false server error. Honor the exception's status/response
+  // instead (found live during QA).
+  if (err instanceof HTTPException) {
+    logger.warn({ err: err.message, status: err.status, path: c.req.path }, 'client error')
+    return err.getResponse()
+  }
   logger.error({ err, path: c.req.path }, 'unhandled error')
   return c.json({ error: 'internal_error' }, 500)
 })
