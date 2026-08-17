@@ -160,6 +160,19 @@ Chapel deploy is staged and ready (Wave 3) but paused — the funded balance is 
 
 ---
 
+## Wave 5 — dispatched 2026-08-17 (wire keeper to live Chapel deployment)
+
+### Task: Point `apps/keeper`'s real indexer/attester code at the live Chapel ProofLedger
+- **Owner:** `proof-engine-engineer`
+- **Status:** ✅ **done, PM-verified live on-chain.** No source changes needed — Wave 4's keeper code (chain-id-aware `lib/chain.ts`, real viem `getContractEvents`/`readContract`/`writeContract` in `jobs/{indexer,attester}.ts`) worked against Chapel unmodified, exactly as designed; only a local gitignored `apps/keeper/.env` was added (verified via `git check-ignore -v`), no new env var *names* needed (existing `env.ts`/`.env.example` contract already covered RPC/address/deploy-block/attester-key). **Read-side:** the keeper's real `runIndexerTick()` scanned Chapel from the deploy block (125536768) to tip in one `getContractEvents` call (~1700 blocks, no public-RPC pagination limit hit, ~1.5s) and correctly found recordId 1's real `DecisionRegistered`/`OutcomeAttested` events from Wave 3. Attester tick correctly no-op'd on the already-resolved record (clean log, no spurious tx). **Write-side (agent went further than the completion bar, PM accepts):** registered a genuinely new decision (recordId 2, admin key, tx `0xb876790e...`) to give the keeper something fresh to resolve, then let the keeper's actual code submit a real `attestOutcome` after the deadline (tx `0x7a58faa7...`, attester key, gas 79,094) — **PM independently re-verified via `cast call getDecision(2)`/`getOutcome(2)`/`nextRecordId()`**: `resolved=true`, `nextRecordId()=3`, outcome values match. This is now proof the full keeper code path (not `cast`, not stubs) works read+write against a real public Chapel RPC, not just anvil. Temp proof scripts cleaned up (confirmed absent), key hygiene re-confirmed (only public addresses appear anywhere). **Nothing to commit** — this was a verification task against already-committed code plus a local-only env file.
+- **Objective:** Prove Wave 4's real keeper code (not hand-run `cast`, not anvil-only) also works against the actual live Chapel deployment from Wave 3.
+- **Scope:** local Chapel-pointing keeper config; run the real indexer against Chapel and confirm it finds recordId 1's real events; run the real attester and confirm it correctly skips the already-resolved record; optionally register+attest a fresh record to prove the write path too.
+- **Explicitly out of scope:** mainnet; `apps/web`; `apps/api`; re-deploying the contract; BscScan verification.
+- **Depends on:** Wave 3 (Chapel deploy) + Wave 4 (keeper code) — both done.
+- **Completion criteria:** keeper's real indexer code demonstrably reads real Chapel chain state; attester correctly handles an already-resolved record without erroring. (Exceeded: also demonstrated a real write.)
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
@@ -172,10 +185,9 @@ Chapel deploy is staged and ready (Wave 3) but paused — the funded balance is 
 | C1.2 | Demo agents (GridGoblin/YieldShepherd/HealthGuard/RangeRanger) via `bnb` CLI + Agent Studio + Altana | `bnb-stack-engineer` | **account** — AWS/Agent Studio + Altana SDK access not provisioned |
 | B1.1 (real) | Wire `apps/api` services to real 8004scan/Altana calls | `bnb-stack-engineer` | **account** — 8004scan Pro API key, Altana API key |
 | B1.2 (real) | Run drizzle migration against real Postgres | — | **account** — Supabase project + `DATABASE_URL` |
-| C1.3 | Wire `apps/keeper` to the live Chapel address instead of local anvil | `proof-engine-engineer` | none — unblocked now that Wave 3 landed; just not dispatched yet |
 | C1.1 (verify) | BscScan-verify the deployed Chapel contract | `proof-engine-engineer` | **account** — `BSCSCAN_API_KEY` not provisioned |
 
-Everything in this table is either an account blocker (see Wave 2's header) or downstream of the paused frontend track — re-check this table before dispatching anything new. (C1.1 deploy itself is done, see Wave 3 above — struck from this table.)
+Everything in this table is either an account blocker (see Wave 2's header) or downstream of the paused frontend track — re-check this table before dispatching anything new. (C1.1 deploy itself is done, see Wave 3 above; C1.3 done, see Wave 5 below — both struck from this table.)
 
 ---
 
