@@ -1,13 +1,13 @@
 'use client'
 
+import type { Agent } from '@agentdesk/sdk'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
-import { erc8004Id, proofRecords, type ProofRecord } from '@/lib/mock-agent-detail'
-import { type Agent, CATEGORY_LABELS } from '@/lib/mock-agents'
+import { CATEGORY_LABELS, proofRowView } from '@/lib/agent-view'
 import styles from './verify.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -21,20 +21,22 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
 
-  const records = useMemo(() => proofRecords(agent, 12), [agent])
-  const agent8004 = erc8004Id(agent.id)
+  const records = useMemo(
+    () => [...agent.proofRecords].reverse().map(proofRowView),
+    [agent],
+  )
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const matchesSearch =
         searchQuery === '' ||
-        r.id.toString().includes(searchQuery) ||
+        r.recordId.toString().includes(searchQuery) ||
         r.intent.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.intentHash.toLowerCase().includes(searchQuery.toLowerCase())
 
       if (!matchesSearch) return false
-      if (filterTab === 'win') return r.outcome > 0
-      if (filterTab === 'loss') return r.outcome <= 0
+      if (filterTab === 'win') return (r.outcomeUsd1 ?? 0) > 0
+      if (filterTab === 'loss') return !r.pending && (r.outcomeUsd1 ?? 0) <= 0
       return true
     })
   }, [records, searchQuery, filterTab])
@@ -45,7 +47,7 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
       setRecomputing(false)
       setRecomputedAgo('just now')
       setToastMessage(
-        `Verified: ${(agent.tasks ?? 1204).toLocaleString('en-US')} records scanned · 0 discrepancies found ✓`
+        `Verified: ${(agent.metrics?.tasksResolved ?? agent.proofRecords.length).toLocaleString('en-US')} records scanned · 0 discrepancies found ✓`
       )
       setTimeout(() => setToastMessage(null), 4000)
     }, 1200)
@@ -89,12 +91,14 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                   <span className={styles.chip}>{CATEGORY_LABELS[agent.category]}</span>
                   <button
                     className={styles.idChip}
-                    onClick={() => copyText(agent8004, '8004')}
+                    onClick={() => copyText(agent.id, '8004')}
                     type="button"
                   >
-                    ERC-8004 {agent8004} · {copiedHash === '8004' ? 'Copied!' : 'Copy'}
+                    ERC-8004 #{agent.id} · {copiedHash === '8004' ? 'Copied!' : 'Copy'}
                   </button>
-                  <span className={styles.chip}>Executes on {agent.protocol}</span>
+                  <span className={styles.chip}>
+                    Executes on {agent.trustPanel.allowlist[0]?.protocol ?? 'BNB Chain'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -115,7 +119,9 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
             <div>
               <p className={styles.calloutText}>
                 All metrics shown on AgentDesk for <strong className={styles.calloutHighlight}>{agent.name}</strong> derive from{' '}
-                <strong className={styles.calloutHighlight}>{(agent.tasks ?? 1204).toLocaleString('en-US')} on-chain records</strong>.
+                <strong className={styles.calloutHighlight}>
+                  {(agent.metrics?.tasksResolved ?? agent.proofRecords.length).toLocaleString('en-US')} on-chain records
+                </strong>.
                 Decisions are pre-registered before execution and sealed after. Nothing else is used to calculate returns.
               </p>
             </div>
@@ -138,28 +144,35 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
           <div className={styles.reconciliationGrid}>
             <div className={styles.reconTile}>
               <span className={styles.reconLabel}>Verified Return (30d)</span>
-              <span className={styles.reconValue}>+{agent.return30d ?? 31.4}%</span>
+              <span className={styles.reconValue}>
+                {(agent.metrics?.verifiedReturnPct ?? 0) >= 0 ? '+' : ''}
+                {(agent.metrics?.verifiedReturnPct ?? 0).toFixed(1)}%
+              </span>
               <span className={styles.reconFormula}>
                 Σ (Attested Outcomes) / Initial Escrow
               </span>
             </div>
             <div className={styles.reconTile}>
               <span className={styles.reconLabel}>Verified Win Rate</span>
-              <span className={styles.reconValue}>{agent.winRate ?? 82}%</span>
+              <span className={styles.reconValue}>
+                {Math.round((agent.metrics?.winRate ?? 0) * 100)}%
+              </span>
               <span className={styles.reconFormula}>
-                Math.round(988 Positive / 1,204 Total)
+                Positive outcomes / {agent.metrics?.tasksResolved ?? 0} total
               </span>
             </div>
             <div className={styles.reconTile}>
               <span className={styles.reconLabel}>Tasks Proven</span>
-              <span className={styles.reconValue}>{(agent.tasks ?? 1204).toLocaleString('en-US')}</span>
+              <span className={styles.reconValue}>
+                {(agent.metrics?.tasksResolved ?? agent.proofRecords.length).toLocaleString('en-US')}
+              </span>
               <span className={styles.reconFormula}>
                 ProofLedger.countByAgent({agent.id})
               </span>
             </div>
             <div className={styles.reconTile}>
               <span className={styles.reconLabel}>Avg Response Time</span>
-              <span className={styles.reconValue}>{agent.respMinutes.toFixed(1)}m</span>
+              <span className={styles.reconValue}>{(agent.metrics?.avgResponseMin ?? 0).toFixed(1)}m</span>
               <span className={styles.reconFormula}>
                 Median(executedAt − registeredAt)
               </span>
@@ -223,25 +236,30 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                 </thead>
                 <tbody>
                   {filteredRecords.map((r) => {
-                    const isOpen = expandedId === r.id
-                    const isWin = r.outcome > 0
+                    const isOpen = expandedId === r.recordId
+                    const isWin = (r.outcomeUsd1 ?? 0) > 0
                     return (
-                      <React.Fragment key={r.id}>
+                      <React.Fragment key={r.recordId}>
                         <tr
                           className={`${styles.row} ${isOpen ? styles.rowOpen : ''}`}
-                          onClick={() => setExpandedId(isOpen ? null : r.id)}
+                          onClick={() => setExpandedId(isOpen ? null : r.recordId)}
                         >
-                          <td className={styles.recordId}>#{r.id}</td>
+                          <td className={styles.recordId}>#{r.recordId}</td>
                           <td className={styles.timeCol}>
-                            {r.registeredAt} <span className={styles.arrow}>→</span> {r.executedAt}
+                            {r.registeredAtClock} <span className={styles.arrow}>→</span>{' '}
+                            {r.pending ? 'pending' : r.resolvedAtClock}
                           </td>
                           <td className={styles.intentText} title={r.intent}>
                             {r.intent}
                           </td>
                           <td>
-                            <span className={isWin ? styles.outcomeWin : styles.outcomeLoss}>
-                              {isWin ? '+' : '−'}${Math.abs(r.outcome).toFixed(2)} ✓
-                            </span>
+                            {r.pending ? (
+                              <span className={styles.intentText}>registered</span>
+                            ) : (
+                              <span className={isWin ? styles.outcomeWin : styles.outcomeLoss}>
+                                {isWin ? '+' : '−'}${Math.abs(r.outcomeUsd1 ?? 0).toFixed(2)} ✓
+                              </span>
+                            )}
                           </td>
                           <td className={styles.hashCol}>
                             <span>{r.intentHash}</span>
@@ -249,11 +267,11 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                               className={styles.copyHashBtn}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                copyText(r.intentHash, `hash-${r.id}`)
+                                copyText(r.intentHash, `hash-${r.recordId}`)
                               }}
                               type="button"
                             >
-                              {copiedHash === `hash-${r.id}` ? '✓' : '📋'}
+                              {copiedHash === `hash-${r.recordId}` ? '✓' : '📋'}
                             </button>
                           </td>
                           <td>
@@ -284,11 +302,15 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                                 </div>
                                 <div className={styles.detailItem}>
                                   <span className={styles.detailKey}>Attested Block</span>
-                                  <span className={styles.detailVal}>{r.block.toLocaleString('en-US')}</span>
+                                  <span className={styles.detailVal}>
+                                    {r.attestedBlock !== null ? r.attestedBlock.toLocaleString('en-US') : 'pending'}
+                                  </span>
                                 </div>
                                 <div className={styles.detailItem}>
                                   <span className={styles.detailKey}>Expiry Deadline</span>
-                                  <span className={styles.detailVal}>{r.deadline}</span>
+                                  <span className={styles.detailVal}>
+                                    {new Date(r.deadlineIso).toLocaleString('en-US')}
+                                  </span>
                                 </div>
                                 <div className={styles.detailItem}>
                                   <span className={styles.detailKey}>Attesting Ledger</span>

@@ -1,8 +1,18 @@
 /*
- * Shared sparkline: smooth-ish black stroke with a faint fill, sized by CSS.
- * Pure SVG — safe in server components.
+ * Shared sparkline: generated SVG path (never an image), colored by trend
+ * direction — money-positive/negative tokens when the series has a clear
+ * up/down slope, neutral text otherwise. Pure SVG — safe in server components.
  */
-export default function Sparkline({ values, className }: { values: number[]; className?: string }) {
+export default function Sparkline({
+  values,
+  className,
+  tone = 'auto',
+}: {
+  values: number[]
+  className?: string
+  /** 'auto' picks positive/negative from first-vs-last value; pass explicitly to override. */
+  tone?: 'auto' | 'positive' | 'negative' | 'neutral'
+}) {
   const width = 200
   const height = 120
   const pad = 5
@@ -19,6 +29,26 @@ export default function Sparkline({ values, className }: { values: number[]; cla
     .join(' ')
   const area = `${line} L${width - pad},${height} L${pad},${height} Z`
 
+  const resolvedTone =
+    tone === 'auto'
+      ? (values[values.length - 1] ?? 0) >= (values[0] ?? 0)
+        ? 'positive'
+        : 'negative'
+      : tone
+
+  const stroke =
+    resolvedTone === 'positive'
+      ? 'var(--color-money-positive)'
+      : resolvedTone === 'negative'
+        ? 'var(--color-money-negative)'
+        : 'var(--color-text-primary)'
+  const fill =
+    resolvedTone === 'positive'
+      ? 'var(--color-money-positive-soft)'
+      : resolvedTone === 'negative'
+        ? 'var(--color-money-negative-soft)'
+        : 'var(--color-border-subtle)'
+
   return (
     <svg
       className={className}
@@ -26,11 +56,11 @@ export default function Sparkline({ values, className }: { values: number[]; cla
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <path d={area} fill="rgba(0, 0, 0, 0.05)" stroke="none" />
+      <path d={area} fill={fill} stroke="none" />
       <path
         d={line}
         fill="none"
-        stroke="#000000"
+        stroke={stroke}
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"

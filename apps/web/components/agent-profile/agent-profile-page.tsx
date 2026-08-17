@@ -1,28 +1,32 @@
 'use client'
 
+import type { Agent } from '@agentdesk/sdk'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
-import {
-  equitySeries,
-  erc8004Id,
-  proofRecords,
-  statTiles,
-  type Timeframe,
-} from '@/lib/mock-agent-detail'
-import { type Agent, CATEGORY_LABELS } from '@/lib/mock-agents'
+import { CATEGORY_LABELS, proofRowView, statTiles } from '@/lib/agent-view'
 import styles from './agent-profile-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
-const TIMEFRAMES: Timeframe[] = ['7d', '30d', 'all']
-
+/**
+ * The real fixture `Agent` carries one equity curve, already the "all"
+ * window the Proof Engine derives (packages/sdk fixtures are `metrics.window
+ * === "30d"` — there is no separate 7d/all series to switch between yet).
+ * The chart still renders the real curve; this local type just names what
+ * used to be a 3-way timeframe toggle so the JSX below stays unchanged.
+ */
 function EquityChart({ agent }: { agent: Agent }) {
-  const [timeframe, setTimeframe] = useState<Timeframe>('30d')
-  const series = useMemo(() => equitySeries(agent, timeframe), [agent, timeframe])
+  const series = useMemo(
+    () =>
+      agent.equityCurve.length > 0
+        ? agent.equityCurve.map((point) => point.cumulativeReturnPct)
+        : [0, 0],
+    [agent],
+  )
 
   const width = 640
   const height = 220
@@ -44,28 +48,16 @@ function EquityChart({ agent }: { agent: Agent }) {
     <div className={styles.chartCard}>
       <div className={styles.chartHeader}>
         <div>
-          <h3 className={styles.chartTitle}>Verified P&L</h3>
+          <h3 className={styles.chartTitle}>Verified return</h3>
           <p className={styles.chartSub}>
-            cumulative, USD1 · ends at +${(series[series.length - 1] ?? 0).toFixed(2)}
+            cumulative % · ends at {(series[series.length - 1] ?? 0) >= 0 ? '+' : ''}
+            {(series[series.length - 1] ?? 0).toFixed(2)}%
           </p>
-        </div>
-        <div className={styles.timeframes}>
-          {TIMEFRAMES.map((option) => (
-            <button
-              className={`${styles.timeframe} ${timeframe === option ? styles.timeframeActive : ''}`}
-              key={option}
-              onClick={() => setTimeframe(option)}
-              type="button"
-            >
-              {option.toUpperCase()}
-            </button>
-          ))}
         </div>
       </div>
 
       <svg
-        key={timeframe}
-        aria-label="Cumulative verified P&L"
+        aria-label="Cumulative verified return"
         className={styles.chart}
         preserveAspectRatio="none"
         viewBox={`0 0 ${width} ${height}`}
@@ -113,22 +105,28 @@ function ProofRow({
   open,
   onToggle,
 }: {
-  record: ReturnType<typeof proofRecords>[number]
+  record: ReturnType<typeof proofRowView>
   open: boolean
   onToggle: () => void
 }) {
-  const positive = record.outcome >= 0
+  const positive = (record.outcomeUsd1 ?? 0) >= 0
   return (
     <div className={open ? `${styles.proofRow} ${styles.proofRowOpen}` : styles.proofRow}>
       <button className={styles.proofButton} onClick={onToggle} type="button">
-        <span className={styles.proofId}>#{record.id}</span>
+        <span className={styles.proofId}>#{record.recordId}</span>
         <span className={styles.proofIntent}>{record.intent}</span>
         <span className={styles.proofTimes}>
-          {record.registeredAt} <span className={styles.proofArrow}>→</span> {record.executedAt}
+          {record.registeredAtClock}{' '}
+          <span className={styles.proofArrow}>→</span>{' '}
+          {record.pending ? 'pending' : record.resolvedAtClock}
         </span>
-        <span className={positive ? styles.outcomeWin : styles.outcomeLoss}>
-          {positive ? '+' : '−'}${Math.abs(record.outcome).toFixed(2)} ✓
-        </span>
+        {record.pending ? (
+          <span className={styles.proofIntent}>registered</span>
+        ) : (
+          <span className={positive ? styles.outcomeWin : styles.outcomeLoss}>
+            {positive ? '+' : '−'}${Math.abs(record.outcomeUsd1 ?? 0).toFixed(2)} ✓
+          </span>
+        )}
         <span className={open ? styles.chevronOpen : styles.chevron}>⌄</span>
       </button>
       {open && (
@@ -139,8 +137,10 @@ function ProofRow({
           transition={{ duration: 0.4, ease: EASE }}
         >
           <span>intentHash {record.intentHash}</span>
-          <span>deadline {record.deadline}</span>
-          <span>attested block {record.block.toLocaleString('en-US')}</span>
+          <span>deadline {new Date(record.deadlineIso).toLocaleString('en-US')}</span>
+          {record.attestedBlock !== null && (
+            <span>attested block {record.attestedBlock.toLocaleString('en-US')}</span>
+          )}
         </motion.div>
       )}
     </div>
@@ -151,12 +151,14 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
   const [expanded, setExpanded] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
   const tiles = useMemo(() => statTiles(agent), [agent])
-  const records = useMemo(() => proofRecords(agent), [agent])
-  const agent8004 = erc8004Id(agent.id)
+  const records = useMemo(
+    () => [...agent.proofRecords].reverse().map(proofRowView),
+    [agent],
+  )
 
   const copyId = async () => {
     try {
-      await navigator.clipboard.writeText(agent8004)
+      await navigator.clipboard.writeText(agent.id)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -189,7 +191,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
               <div className={styles.chips}>
                 <span className={styles.chip}>{CATEGORY_LABELS[agent.category]}</span>
                 <button className={styles.idChip} onClick={copyId} type="button">
-                  ERC-8004 {agent8004} · {copied ? 'Copied' : 'Copy'}
+                  ERC-8004 #{agent.id} · {copied ? 'Copied' : 'Copy'}
                 </button>
                 <span className={styles.dev}>by @cryptoforge ✓</span>
               </div>
@@ -219,17 +221,19 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                     <div className={styles.stream}>
                       {records.map((record) => (
                         <ProofRow
-                          key={record.id}
+                          key={record.recordId}
                           onToggle={() =>
-                            setExpanded((current) => (current === record.id ? null : record.id))
+                            setExpanded((current) =>
+                              current === record.recordId ? null : record.recordId,
+                            )
                           }
-                          open={expanded === record.id}
+                          open={expanded === record.recordId}
                           record={record}
                         />
                       ))}
                     </div>
                     <a className={styles.viewAll} href="/marketplace">
-                      View all {agent.tasks?.toLocaleString('en-US')} proofs →
+                      View all {(agent.metrics?.tasksResolved ?? agent.proofRecords.length).toLocaleString('en-US')} proofs →
                     </a>
                   </div>
                 </>
@@ -249,15 +253,17 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
             <aside className={styles.rail}>
               <div className={styles.railCard}>
                 <p className={styles.railPrice}>
-                  from ${agent.pricePerTask.toFixed(2)}
+                  from ${agent.pricePerTaskUsd1.toFixed(2)}
                   <span className={styles.railPer}> / completed task</span>
                 </p>
                 <ul className={styles.limits}>
                   <li>
-                    <span className={shared.eyebrowDot} /> Max spend $50/day
+                    <span className={shared.eyebrowDot} /> Max spend $
+                    {agent.trustPanel.spendCapUsd1}/{agent.trustPanel.spendCapWindow}
                   </li>
                   <li>
-                    <span className={shared.eyebrowDot} /> Access expires in 7 days
+                    <span className={shared.eyebrowDot} /> Access expires in{' '}
+                    {agent.trustPanel.durationDays} days
                   </li>
                   <li>
                     <span className={shared.eyebrowDot} /> One-tap stop, always

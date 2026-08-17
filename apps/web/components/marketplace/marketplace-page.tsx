@@ -1,37 +1,56 @@
 'use client'
 
+import type { Agent, Category } from '@agentdesk/sdk'
 import { motion } from 'motion/react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
 import Sparkline from '@/components/sparkline'
-import { AGENTS, type Agent, CATEGORY_LABELS, type Category } from '@/lib/mock-agents'
+import { client } from '@/lib/agentdesk-client'
+import { CATEGORY_LABELS } from '@/lib/agent-view'
 import styles from './marketplace-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type CategoryFilter = 'all' | Category
-type SortId = 'return' | 'winRate' | 'tasks' | 'respMinutes' | 'listedDaysAgo'
+type SortId = 'return' | 'winRate' | 'tasks' | 'respMinutes' | 'newest'
 
 const SORTS: { id: SortId; label: string }[] = [
   { id: 'return', label: 'Verified return' },
   { id: 'winRate', label: 'Win rate' },
   { id: 'tasks', label: 'Tasks proven' },
   { id: 'respMinutes', label: 'Response time' },
-  { id: 'listedDaysAgo', label: 'Newest' },
+  { id: 'newest', label: 'Newest' },
 ]
 
 const TABS: { id: CategoryFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'grid', label: CATEGORY_LABELS.grid },
-  { id: 'rebalancing', label: CATEGORY_LABELS.rebalancing },
+  { id: 'rebalance', label: CATEGORY_LABELS.rebalance },
   { id: 'yield', label: CATEGORY_LABELS.yield },
   { id: 'health', label: CATEGORY_LABELS.health },
 ]
 
+function AgentCardSkeleton() {
+  return (
+    <div className={styles.card} aria-hidden="true">
+      <div className={styles.cardTop}>
+        <span className={styles.skeletonLine} style={{ width: '46%', height: 16 }} />
+        <span className={styles.skeletonPill} />
+      </div>
+      <span className={styles.skeletonLine} style={{ width: '70%', height: 13 }} />
+      <span className={styles.skeletonBlock} />
+      <span className={styles.skeletonLine} style={{ width: '55%', height: 15 }} />
+      <span className={styles.skeletonLine} style={{ width: '40%', height: 11 }} />
+    </div>
+  )
+}
+
 function AgentCard({ agent }: { agent: Agent }) {
+  const metrics = agent.metrics
+  const returnPct = metrics?.verifiedReturnPct ?? null
   return (
     <Link
       className={agent.verified ? styles.card : `${styles.card} ${styles.cardUnverified}`}
@@ -47,15 +66,28 @@ function AgentCard({ agent }: { agent: Agent }) {
       </div>
       <p className={styles.tagline}>{agent.tagline}</p>
 
-      {agent.verified ? (
+      {agent.verified && metrics ? (
         <>
-          <Sparkline className={styles.spark} values={agent.spark} />
+          <Sparkline
+            className={styles.spark}
+            values={agent.equityCurve.map((p) => p.cumulativeReturnPct)}
+            tone={returnPct !== null && returnPct < 0 ? 'negative' : 'positive'}
+          />
           <div className={styles.stats}>
-            <span className={styles.statMain}>
-              +{agent.return30d?.toFixed(1)}% <span className={styles.statSub}>· 30d</span>
+            <span
+              className={styles.statMain}
+              data-sign={returnPct !== null && returnPct < 0 ? 'negative' : 'positive'}
+              data-numeric
+            >
+              {returnPct !== null && returnPct >= 0 ? '+' : ''}
+              {returnPct?.toFixed(1)}% <span className={styles.statSub}>· 30d</span>
             </span>
-            <span className={styles.stat}>{agent.winRate}% wins</span>
-            <span className={styles.stat}>{agent.tasks?.toLocaleString('en-US')} tasks</span>
+            <span className={styles.stat} data-numeric>
+              {Math.round(metrics.winRate * 100)}% wins
+            </span>
+            <span className={styles.stat} data-numeric>
+              {metrics.tasksResolved.toLocaleString('en-US')} tasks
+            </span>
           </div>
         </>
       ) : (
@@ -65,10 +97,13 @@ function AgentCard({ agent }: { agent: Agent }) {
       )}
 
       <div className={styles.meta}>
-        Risk: {agent.risk} · Executes on {agent.protocol}
+        Risk: {agent.riskLevel[0]?.toUpperCase()}
+        {agent.riskLevel.slice(1)} · Executes on {agent.trustPanel.allowlist[0]?.protocol ?? '—'}
       </div>
       <div className={styles.cardBottom}>
-        <span className={styles.price}>from ${agent.pricePerTask.toFixed(2)} / task</span>
+        <span className={styles.price} data-numeric>
+          from ${agent.pricePerTaskUsd1.toFixed(2)} / task
+        </span>
         <span className={styles.hirePill}>
           Hire <span className={styles.hireArrow}>▸</span>
         </span>
@@ -78,12 +113,24 @@ function AgentCard({ agent }: { agent: Agent }) {
 }
 
 export default function MarketplacePage() {
+  const [allAgents, setAllAgents] = useState<Agent[] | null>(null)
   const [category, setCategory] = useState<CategoryFilter>('all')
   const [verifiedOnly, setVerifiedOnly] = useState(true)
   const [sort, setSort] = useState<SortId>('return')
 
+  useEffect(() => {
+    let cancelled = false
+    client.getAgents().then((result) => {
+      if (!cancelled) setAllAgents(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const agents = useMemo(() => {
-    const list = AGENTS.filter(
+    if (!allAgents) return []
+    const list = allAgents.filter(
       (agent) =>
         (category === 'all' || agent.category === category) && (!verifiedOnly || agent.verified),
     )
@@ -92,18 +139,18 @@ export default function MarketplacePage() {
       if (a.verified !== b.verified) return a.verified ? -1 : 1
       switch (sort) {
         case 'winRate':
-          return (b.winRate ?? 0) - (a.winRate ?? 0)
+          return (b.metrics?.winRate ?? 0) - (a.metrics?.winRate ?? 0)
         case 'tasks':
-          return (b.tasks ?? 0) - (a.tasks ?? 0)
+          return (b.metrics?.tasksResolved ?? 0) - (a.metrics?.tasksResolved ?? 0)
         case 'respMinutes':
-          return a.respMinutes - b.respMinutes
-        case 'listedDaysAgo':
-          return a.listedDaysAgo - b.listedDaysAgo
+          return (a.metrics?.avgResponseMin ?? Infinity) - (b.metrics?.avgResponseMin ?? Infinity)
+        case 'newest':
+          return Date.parse(b.registeredAt) - Date.parse(a.registeredAt)
         default:
-          return (b.return30d ?? 0) - (a.return30d ?? 0)
+          return (b.metrics?.verifiedReturnPct ?? 0) - (a.metrics?.verifiedReturnPct ?? 0)
       }
     })
-  }, [category, verifiedOnly, sort])
+  }, [allAgents, category, verifiedOnly, sort])
 
   const verifiedCount = agents.filter((agent) => agent.verified).length
 
@@ -119,8 +166,8 @@ export default function MarketplacePage() {
               Marketplace
             </p>
             <h1 className={styles.heading}>Hire a proven agent.</h1>
-            <p className={styles.count}>
-              {verifiedCount} verified · {agents.length} agents
+            <p className={styles.count} data-numeric>
+              {allAgents === null ? 'Loading agents…' : `${verifiedCount} verified · ${agents.length} agents`}
             </p>
           </div>
 
@@ -170,7 +217,13 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          {agents.length > 0 ? (
+          {allAgents === null ? (
+            <div className={styles.grid}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <AgentCardSkeleton key={`skeleton-${i}`} />
+              ))}
+            </div>
+          ) : agents.length > 0 ? (
             <div className={styles.grid} key={`${category}-${verifiedOnly}-${sort}`}>
               {agents.map((agent, i) => (
                 <motion.div

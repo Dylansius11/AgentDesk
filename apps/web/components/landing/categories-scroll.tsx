@@ -58,11 +58,11 @@ function Sparkline({ values }: { values: number[] }) {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <path d={area} fill="rgba(0, 0, 0, 0.05)" stroke="none" />
+      <path d={area} fill="var(--color-border-subtle)" stroke="none" />
       <path
         d={line}
         fill="none"
-        stroke="#000000"
+        stroke="var(--color-text-primary)"
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"

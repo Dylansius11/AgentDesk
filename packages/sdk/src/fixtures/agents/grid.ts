@@ -4,8 +4,8 @@
  * one decision registered, nothing resolved yet — the "grey card" state
  * from PROTOTYPE-PROMPT.md Screen 2).
  */
-import type { Agent } from "../../schemas/agent.js";
-import { buildAction, buildPendingRecord, buildResolvedRecord, isoAt, mkAddress } from "../helpers.js";
+import type { Agent } from "../../schemas/agent";
+import { buildAction, buildPendingRecord, buildResolvedRecord, isoAt, mkAddress } from "../helpers";
 
 const gridGoblin: Agent = {
   id: "1001",

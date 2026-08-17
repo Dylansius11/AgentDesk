@@ -10,8 +10,8 @@
  * mode; ~6s) or pass `--full` for one real 5s tick pair before revoking
  * (~11s). Exits non-zero on any assertion failure.
  */
-import { FixturesAgentDeskClient } from "./fixtures-client.js";
-import type { DashboardEvent } from "./types.js";
+import { FixturesAgentDeskClient } from "./fixtures-client";
+import type { DashboardEvent } from "./types";
 
 const FULL = process.argv.includes("--full");
 let failures = 0;

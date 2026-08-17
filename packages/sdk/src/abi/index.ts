@@ -6,4 +6,4 @@
  * exporting it, matching the pattern of every other packages/sdk/src/*
  * barrel (schemas/index.ts, fixtures/index.ts).
  */
-export { proofLedgerAbi } from "./proof-ledger.js";
+export { proofLedgerAbi } from "./proof-ledger";

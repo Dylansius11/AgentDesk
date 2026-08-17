@@ -1,10 +1,11 @@
 'use client'
 
+import type { Agent } from '@agentdesk/sdk'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import SiteNavbar from '@/components/site-navbar'
-import type { Agent } from '@/lib/mock-agents'
+import { client } from '@/lib/agentdesk-client'
 import styles from './hire-flow.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -18,12 +19,8 @@ const DURATIONS: { id: Duration; label: string }[] = [
   { id: 'until', label: 'Until I stop' },
 ]
 
-const PRIMARY_ACTION: Record<Agent['category'], string> = {
-  grid: 'trade CAKE/USDT on PancakeSwap',
-  rebalancing: 'manage your PancakeSwap v3 positions',
-  yield: 'move funds between farms',
-  health: 'repay debt on Venus to protect your health factor',
-}
+/** Demo hirer wallet — this prototype has no wallet connect yet (Phase B), so every hire is confirmed from this fixed, obviously-fake address. */
+const DEMO_HIRER_ADDRESS = '0xf00df00df00df00df00df00df00df00df00df00d'
 
 function expiryLabel(duration: Duration): string {
   if (duration === 'until') return 'until you stop it'
@@ -66,38 +63,27 @@ function Confetti() {
 export default function HireFlow({ agent }: { agent: Agent }) {
   const [step, setStep] = useState(1)
   const [amount, setAmount] = useState(200)
-  const [cap, setCap] = useState(50)
+  const [cap, setCap] = useState(agent.trustPanel.spendCapUsd1)
   const [duration, setDuration] = useState<Duration>('7d')
   const [allowPrimary, setAllowPrimary] = useState(true)
-  const [allowMove, setAllowMove] = useState(true)
   const [authDone, setAuthDone] = useState(0)
   const [success, setSuccess] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  const action = PRIMARY_ACTION[agent.category]
-  const escrow = agent.pricePerTask * 3 * 1.03
+  // Real fixtures grant exactly one allowlist entry per agent — its plain-English
+  // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
+  const primaryEntry = agent.trustPanel.allowlist[0]
+  const action = primaryEntry?.label ?? 'act on your behalf'
+  const escrow = agent.pricePerTaskUsd1 * 3 * 1.03
 
   const sentence = useMemo(() => {
-    const verbs = [
-      allowPrimary ? action : null,
-      allowMove ? 'move funds between approved venues' : null,
-    ].filter(Boolean)
-    const verbText =
-      verbs.length === 0
-        ? 'watch your balance only'
-        : verbs.length === 1
-          ? verbs[0]
-          : `${verbs[0]} and ${verbs[1]}`
+    const verbText = allowPrimary ? action : 'watch your balance only'
     return `${agent.name} may ${verbText} with at most $${cap} per day, ${expiryLabel(duration)}. It cannot withdraw. You can stop it anytime.`
-  }, [action, allowMove, allowPrimary, agent.name, cap, duration])
+  }, [action, allowPrimary, agent.name, cap, duration])
 
-  const actionsAllowed = [allowPrimary, allowMove].filter(Boolean).length
-  const risk =
-    actionsAllowed <= 1 || cap <= 25
-      ? 'Low'
-      : actionsAllowed === 2 && cap >= 200
-        ? 'High'
-        : 'Medium'
+  const risk = !allowPrimary || cap <= 25 ? 'Low' : cap >= 200 ? 'High' : 'Medium'
 
   // step 2: rows auto-complete one by one with a satisfying stagger
   useEffect(() => {
@@ -117,6 +103,33 @@ export default function HireFlow({ agent }: { agent: Agent }) {
     'Grant limited access — exactly the limits above',
     `Fund escrow: $${escrow.toFixed(2)} (3 tasks + fee)`,
   ]
+
+  const confirmHire = async () => {
+    setSubmitting(true)
+    try {
+      const session = await client.hire({
+        agentId: agent.id,
+        hirerAddress: DEMO_HIRER_ADDRESS,
+        config: {
+          amountUsd1: amount,
+          // The allowlist can never be empty — every ERC-8183 session grants
+          // at least one scoped capability (HireConfigSchema.allowlist.min(1)).
+          // Flipping the toggle off changes the plain-English sentence above
+          // but this demo's fixtures only model one real capability per agent.
+          spendCapUsd1: allowPrimary ? cap : 0,
+          spendCapWindow: 'day',
+          durationDays: duration === '24h' ? 1 : duration === '3d' ? 3 : duration === '7d' ? 7 : 365,
+          allowlist: primaryEntry ? [primaryEntry] : [],
+        },
+      })
+      setJobId(session.id)
+      setSuccess(true)
+    } catch {
+      showToast('Could not start this session — try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className={styles.page}>
@@ -158,9 +171,10 @@ export default function HireFlow({ agent }: { agent: Agent }) {
               <div className={styles.stopWrap}>
                 <button
                   className={styles.stopButton}
-                  onClick={() =>
-                    showToast('Session revoked — effective next block. (Live-version behavior.)')
-                  }
+                  onClick={async () => {
+                    if (jobId) await client.revoke(jobId)
+                    showToast('Session revoked — effective next block.')
+                  }}
                   type="button"
                 >
                   STOP
@@ -243,18 +257,6 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                     <span className={`${styles.toggleKnob} ${allowPrimary ? styles.knobOn : ''}`} />
                   </span>
                 </button>
-                <button
-                  aria-checked={allowMove}
-                  className={styles.allowRow}
-                  onClick={() => setAllowMove((value) => !value)}
-                  role="switch"
-                  type="button"
-                >
-                  <span className={styles.allowText}>Move funds between approved venues</span>
-                  <span className={styles.toggleTrack}>
-                    <span className={`${styles.toggleKnob} ${allowMove ? styles.knobOn : ''}`} />
-                  </span>
-                </button>
                 <div className={`${styles.allowRow} ${styles.allowLocked}`}>
                   <span className={styles.allowText}>Withdraw to my wallet</span>
                   <span className={styles.lockedNote}>Locked off</span>
@@ -326,7 +328,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                   <span>Amount to manage</span>
                   <span>${amount}</span>
                   <span>Price per completed task</span>
-                  <span>${agent.pricePerTask.toFixed(2)}</span>
+                  <span>${agent.pricePerTaskUsd1.toFixed(2)}</span>
                   <span>Escrow (3 tasks + 3% fee)</span>
                   <span>${escrow.toFixed(2)}</span>
                 </div>
@@ -339,8 +341,13 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                 <button className={styles.ghostButton} onClick={() => setStep(2)} type="button">
                   ← Back
                 </button>
-                <button className={styles.blackPill} onClick={() => setSuccess(true)} type="button">
-                  Start {agent.name} ▸
+                <button
+                  className={styles.blackPill}
+                  disabled={submitting}
+                  onClick={confirmHire}
+                  type="button"
+                >
+                  {submitting ? 'Starting…' : `Start ${agent.name} ▸`}
                 </button>
               </div>
             </div>

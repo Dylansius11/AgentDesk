@@ -8,7 +8,7 @@
  * `HireSession.config` for the config a hirer actually confirmed.
  */
 import { z } from "zod";
-import { IsoDatetimeSchema, Usd1NonNegativeSchema } from "./primitives.js";
+import { IsoDatetimeSchema, Usd1NonNegativeSchema } from "./primitives";
 
 /**
  * One allowlist entry: what the agent's session key is scoped to call.

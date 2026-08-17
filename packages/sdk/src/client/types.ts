@@ -38,11 +38,11 @@
  * so timeout/circuit-breaker/staleness-chip plumbing is N-A here and belongs
  * in the Phase B implementation instead.
  */
-import type { Agent } from "../schemas/agent.js";
-import type { AgentId, Address } from "../schemas/primitives.js";
-import type { Category } from "../schemas/category.js";
-import type { HireConfig, HireSession } from "../schemas/hire-session.js";
-import type { ProofRecord } from "../schemas/proof-record.js";
+import type { Agent } from "../schemas/agent";
+import type { AgentId, Address } from "../schemas/primitives";
+import type { Category } from "../schemas/category";
+import type { HireConfig, HireSession } from "../schemas/hire-session";
+import type { ProofRecord } from "../schemas/proof-record";
 
 // ── getAgents ──
 

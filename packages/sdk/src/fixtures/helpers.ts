@@ -9,12 +9,41 @@
  * numbers. Deterministic (seeded by a plain string) so fixtures are stable
  * across runs/diffs.
  */
-import { createHash } from "node:crypto";
-import type { Address, Hex32, TxHash } from "../schemas/primitives.js";
-import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record.js";
+import type { Address, Hex32, TxHash } from "../schemas/primitives";
+import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record";
+
+/**
+ * Deterministic 32-byte hex digest from a seed string — NOT a real hash
+ * function (no security property, not SHA-256). This package is consumed
+ * directly (unbundled TS source) by both server and browser code, so it
+ * must stay dependency-free (no `node:crypto`). It only needs to produce
+ * believable, stable-across-runs hex strings for fixture data; a small
+ * seeded PRNG (splitmix32) does that without any Node-only API.
+ */
+function deterministicHex32(seed: string): string {
+  let h = 0x811c9dc5; // fnv-1a offset basis, used only to derive a 32-bit seed
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  let state = h >>> 0;
+  const next = (): number => {
+    // splitmix32
+    state = (state + 0x9e3779b9) >>> 0;
+    let z = state;
+    z = Math.imul(z ^ (z >>> 16), 0x85ebca6b) >>> 0;
+    z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35) >>> 0;
+    return (z ^ (z >>> 16)) >>> 0;
+  };
+  let out = "";
+  while (out.length < 64) {
+    out += next().toString(16).padStart(8, "0");
+  }
+  return out.slice(0, 64);
+}
 
 function sha256Hex(seed: string): string {
-  return createHash("sha256").update(seed).digest("hex");
+  return deterministicHex32(seed);
 }
 
 /** Deterministic 0x-prefixed 32-byte hex value from a seed string. */

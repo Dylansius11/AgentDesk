@@ -3,6 +3,6 @@
  * (CLAUDE.md §6): the `AgentDeskClient` interface, the Phase A fixtures
  * implementation, and the latency helpers used to build it.
  */
-export * from "./types.js";
-export * from "./fixtures-client.js";
-export * from "./latency.js";
+export * from "./types";
+export * from "./fixtures-client";
+export * from "./latency";

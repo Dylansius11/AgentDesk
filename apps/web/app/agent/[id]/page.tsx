@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import AgentProfilePage from '@/components/agent-profile/agent-profile-page'
-import { AGENTS } from '@/lib/mock-agents'
+import { client } from '@/lib/agentdesk-client'
 
-export function generateStaticParams() {
-  return AGENTS.map((agent) => ({ id: agent.id }))
+export async function generateStaticParams() {
+  const agents = await client.getAgents()
+  return agents.map((agent) => ({ id: agent.id }))
 }
 
 export async function generateMetadata({
@@ -13,7 +14,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
   const { id } = await params
-  const agent = AGENTS.find((entry) => entry.id === id)
+  const agent = await client.getAgent(id)
   if (!agent) return { title: 'Agent not found — AgentDesk' }
   return {
     title: `${agent.name} — AgentDesk`,
@@ -23,7 +24,7 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const agent = AGENTS.find((entry) => entry.id === id)
+  const agent = await client.getAgent(id)
   if (!agent) notFound()
   return <AgentProfilePage agent={agent} />
 }

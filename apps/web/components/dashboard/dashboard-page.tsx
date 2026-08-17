@@ -1,5 +1,6 @@
 'use client'
 
+import type { Agent } from '@agentdesk/sdk'
 import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
@@ -7,12 +8,10 @@ import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
 import Sparkline from '@/components/sparkline'
-import { AGENTS } from '@/lib/mock-agents'
+import { client } from '@/lib/agentdesk-client'
 import styles from './dashboard-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-
-const AGENT = AGENTS[0] // GridGoblin — the scripted demo session
 
 interface FeedEvent {
   time: string
@@ -85,6 +84,8 @@ const SCRIPT: FeedEvent[] = [
 const FEED_CAP = 6
 
 export default function DashboardPage() {
+  // "1001" = GridGoblin, the scripted demo session (packages/sdk fixtures/agents/grid.ts)
+  const [agent, setAgent] = useState<Agent | null>(null)
   const [stopped, setStopped] = useState(false)
   const [stopArmed, setStopArmed] = useState(false)
   const [feed, setFeed] = useState<(FeedEvent & { key: number })[]>([])
@@ -96,9 +97,19 @@ export default function DashboardPage() {
   const scriptIndex = useRef(0)
   const eventKey = useRef(0)
 
+  useEffect(() => {
+    let cancelled = false
+    client.getAgent('1001').then((result) => {
+      if (!cancelled) setAgent(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // the live feed: a scripted event slides in every 5 seconds while active
   useEffect(() => {
-    if (stopped) return
+    if (stopped || !agent) return
     const push = (event: FeedEvent) => {
       eventKey.current += 1
       setFeed((current) => [{ ...event, key: eventKey.current }, ...current].slice(0, FEED_CAP))
@@ -124,7 +135,7 @@ export default function DashboardPage() {
       scriptIndex.current += 1
     }, 5000)
     return () => clearInterval(timer)
-  }, [stopped])
+  }, [stopped, agent])
 
   const armOrStop = () => {
     if (stopped) return
@@ -147,6 +158,24 @@ export default function DashboardPage() {
     setSpend(12.4)
     setSpark([3, 3.1, 3.2, 3.3, 3.4])
     setStopped(false)
+  }
+
+  if (!agent) {
+    return (
+      <div className={styles.page}>
+        <SiteNavbar />
+        <main className={shared.section}>
+          <div className={shared.container}>
+            <p className={shared.eyebrow}>
+              <span className={shared.eyebrowDot} />
+              Dashboard
+            </p>
+            <h1 className={styles.heading}>Loading your agents…</h1>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
   }
 
   return (
@@ -181,10 +210,10 @@ export default function DashboardPage() {
           <div className={`${styles.hireCard} ${stopped ? styles.hireCardStopped : ''}`}>
             <div className={styles.cardTop}>
               <div className={styles.identity}>
-                <span className={styles.avatar}>{AGENT.name.charAt(0)}</span>
+                <span className={styles.avatar}>{agent.name.charAt(0)}</span>
                 <div>
-                  <span className={styles.agentName}>{AGENT.name}</span>
-                  <span className={styles.agentTagline}>{AGENT.tagline}</span>
+                  <span className={styles.agentName}>{agent.name}</span>
+                  <span className={styles.agentTagline}>{agent.tagline}</span>
                 </div>
               </div>
               {stopped ? (
@@ -251,7 +280,7 @@ export default function DashboardPage() {
               <div>
                 <p className={styles.stoppedHeading}>No agents working for you right now.</p>
                 <p className={styles.stoppedSub}>
-                  GridGoblin ran 1,204 proven tasks before you stopped it. Hire it again anytime.
+                  {agent.name} ran {(agent.metrics?.tasksResolved ?? 0).toLocaleString('en-US')} proven tasks before you stopped it. Hire it again anytime.
                 </p>
               </div>
               <div className={styles.stoppedActions}>

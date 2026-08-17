@@ -1,82 +1,59 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import Link from 'next/link'
+import type { Agent, Category } from '@agentdesk/sdk'
 import { motion } from 'motion/react'
-import SiteNavbar from '@/components/site-navbar'
-import SiteFooter from '@/components/landing/site-footer'
-import type { Category } from '@/lib/mock-agents'
-import { leaderboardRows, type LeaderboardRow } from '@/lib/mock-agent-detail'
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
+import SiteFooter from '@/components/landing/site-footer'
+import SiteNavbar from '@/components/site-navbar'
+import { CATEGORY_LABELS, CATEGORY_STAT_LABEL, categoryStatValue } from '@/lib/agent-view'
+import { client } from '@/lib/agentdesk-client'
 import s from './leaderboard-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type CategoryFilter = 'all' | Category
-type WindowId = '7d' | '30d' | 'all'
 
 const CAT_TABS: { id: CategoryFilter; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'grid', label: 'Grid' },
-  { id: 'rebalancing', label: 'Rebalancing' },
-  { id: 'yield', label: 'Yield' },
-  { id: 'health', label: 'Health Guard' },
+  { id: 'grid', label: CATEGORY_LABELS.grid },
+  { id: 'rebalance', label: CATEGORY_LABELS.rebalance },
+  { id: 'yield', label: CATEGORY_LABELS.yield },
+  { id: 'health', label: CATEGORY_LABELS.health },
 ]
-
-const WINDOWS: { id: WindowId; label: string }[] = [
-  { id: '7d', label: '7D' },
-  { id: '30d', label: '30D' },
-  { id: 'all', label: 'ALL' },
-]
-
-const CAT_STAT_HEADER: Record<CategoryFilter, string> = {
-  all: 'Specialty',
-  grid: 'Grids completed',
-  rebalancing: 'Ranges rebalanced',
-  yield: 'Harvests collected',
-  health: 'Liquidations saved',
-}
-
-const CAT_STAT_LABEL: Record<Category, string> = {
-  grid: 'Grids completed',
-  rebalancing: 'Ranges rebalanced',
-  yield: 'Harvests collected',
-  health: 'Liquidations saved',
-}
-
-function returnByWindow(row: LeaderboardRow, w: WindowId): number {
-  if (!row.agent.verified) return 0
-  return w === '7d' ? row.return7d : w === '30d' ? row.return30d : row.returnAll
-}
 
 export default function LeaderboardPage() {
+  const [allAgents, setAllAgents] = useState<Agent[] | null>(null)
   const [category, setCategory] = useState<CategoryFilter>('all')
-  const [windowId, setWindowId] = useState<WindowId>('30d')
   const [minTasks, setMinTasks] = useState(false)
 
-  const allRows = useMemo(() => leaderboardRows(), [])
+  useEffect(() => {
+    let cancelled = false
+    client.getAgents().then((result) => {
+      if (!cancelled) setAllAgents(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const rows = useMemo(() => {
-    const filtered = allRows
-      .filter(
-        (r) =>
-          category === 'all' || r.agent.category === category,
-      )
-      .filter((r) => (!minTasks ? true : (r.agent.tasks ?? 0) >= 50))
+    if (!allAgents) return []
+    const filtered = allAgents
+      .filter((agent) => category === 'all' || agent.category === category)
+      .filter((agent) => (!minTasks ? true : (agent.metrics?.tasksResolved ?? 0) >= 50))
 
     return [...filtered].sort((a, b) => {
-      if (a.agent.verified !== b.agent.verified)
-        return a.agent.verified ? -1 : 1
-      return returnByWindow(b, windowId) - returnByWindow(a, windowId)
+      if (a.verified !== b.verified) return a.verified ? -1 : 1
+      return (b.metrics?.verifiedReturnPct ?? 0) - (a.metrics?.verifiedReturnPct ?? 0)
     })
-  }, [allRows, category, windowId, minTasks])
+  }, [allAgents, category, minTasks])
 
-  const catStatHeader =
-    category === 'all' ? 'Specialty' : CAT_STAT_HEADER[category]
+  const catStatHeader = category === 'all' ? 'Specialty' : CATEGORY_STAT_LABEL[category]
 
   const resetFilters = () => {
     setCategory('all')
-    setWindowId('30d')
     setMinTasks(false)
   }
 
@@ -119,18 +96,6 @@ export default function LeaderboardPage() {
               ))}
             </div>
             <div className={s.controlsRight}>
-              <div className={s.windowPills}>
-                {WINDOWS.map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    className={`${s.tab} ${windowId === w.id ? s.tabActive : ''}`}
-                    onClick={() => setWindowId(w.id)}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
               <button
                 type="button"
                 role="switch"
@@ -146,14 +111,18 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          {rows.length > 0 ? (
-            <div className={s.tableWrap} key={`${category}-${windowId}-${minTasks}`}>
+          {allAgents === null ? (
+            <div className={s.tableWrap}>
+              <p className={s.emptyText}>Loading leaderboard…</p>
+            </div>
+          ) : rows.length > 0 ? (
+            <div className={s.tableWrap} key={`${category}-${minTasks}`}>
               <table className={s.table}>
                 <thead>
                   <tr>
                     <th className={s.thRank}>Rank</th>
                     <th className={s.thAgent}>Agent</th>
-                    <th className={s.thNum}>Return</th>
+                    <th className={s.thNum}>Return (30d)</th>
                     <th className={s.thNum}>Win rate</th>
                     <th className={s.thNum}>Max DD</th>
                     <th className={s.thNum}>Tasks</th>
@@ -162,9 +131,9 @@ export default function LeaderboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, i) => (
+                  {rows.map((agent, i) => (
                     <motion.tr
-                      key={row.agent.id}
+                      key={agent.id}
                       className={`${s.row} ${i === 0 ? s.rowFirst : ''}`}
                       initial={{ y: 12, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -175,7 +144,7 @@ export default function LeaderboardPage() {
                       }}
                     >
                       <td className={s.tdRank}>
-                        {row.agent.verified ? (
+                        {agent.verified ? (
                           <span
                             className={`${s.rankChip} ${
                               i === 0
@@ -194,17 +163,10 @@ export default function LeaderboardPage() {
                         )}
                       </td>
                       <td className={s.tdAgent}>
-                        <Link
-                          href={`/agent/${row.agent.id}`}
-                          className={s.agentLink}
-                        >
-                          <span className={s.avatar}>
-                            {row.agent.name[0]}
-                          </span>
-                          <span className={s.agentName}>
-                            {row.agent.name}
-                          </span>
-                          {row.agent.verified ? (
+                        <Link href={`/agent/${agent.id}`} className={s.agentLink}>
+                          <span className={s.avatar}>{agent.name[0]}</span>
+                          <span className={s.agentName}>{agent.name}</span>
+                          {agent.verified ? (
                             <span className={s.verifiedPill}>Verified</span>
                           ) : (
                             <span className={s.noProofPill}>No proof yet</span>
@@ -212,49 +174,40 @@ export default function LeaderboardPage() {
                         </Link>
                       </td>
                       <td className={s.tdNum}>
-                        {row.agent.verified
-                          ? `+${returnByWindow(row, windowId).toFixed(1)}%`
+                        {agent.metrics
+                          ? `${agent.metrics.verifiedReturnPct >= 0 ? '+' : ''}${agent.metrics.verifiedReturnPct.toFixed(1)}%`
                           : '—'}
                       </td>
                       <td className={s.tdNum}>
-                        {row.agent.verified ? `${row.agent.winRate}%` : '—'}
+                        {agent.metrics ? `${Math.round(agent.metrics.winRate * 100)}%` : '—'}
                       </td>
                       <td className={s.tdNum}>
-                        {row.agent.verified
-                          ? `−${row.maxDrawdown.toFixed(1)}%`
-                          : '—'}
+                        {agent.metrics ? `−${agent.metrics.maxDrawdownPct.toFixed(1)}%` : '—'}
                       </td>
                       <td className={s.tdNum}>
-                        {row.agent.verified
-                          ? (row.agent.tasks ?? 0).toLocaleString('en-US')
-                          : '—'}
+                        {agent.metrics ? agent.metrics.tasksResolved.toLocaleString('en-US') : '—'}
                       </td>
                       <td className={s.tdNum}>
-                        {row.agent.verified ? (
+                        {agent.metrics ? (
                           category === 'all' ? (
                             <span className={s.catStatCell}>
                               <span className={s.catStatValue}>
-                                {row.catStatValue.toLocaleString('en-US')}
+                                {categoryStatValue(agent).toLocaleString('en-US')}
                               </span>
                               <span className={s.catStatLabel}>
-                                {CAT_STAT_LABEL[row.agent.category]}
+                                {CATEGORY_STAT_LABEL[agent.category]}
                               </span>
                             </span>
                           ) : (
-                            <span>
-                              {row.catStatValue.toLocaleString('en-US')}
-                            </span>
+                            <span>{categoryStatValue(agent).toLocaleString('en-US')}</span>
                           )
                         ) : (
                           '—'
                         )}
                       </td>
                       <td className={s.tdAudit}>
-                        {row.agent.verified && (
-                          <Link
-                            href={`/verify/${row.agent.id}`}
-                            className={s.auditLink}
-                          >
+                        {agent.verified && (
+                          <Link href={`/verify/${agent.id}`} className={s.auditLink}>
                             audit ↗
                           </Link>
                         )}
@@ -266,14 +219,8 @@ export default function LeaderboardPage() {
             </div>
           ) : (
             <div className={s.empty}>
-              <p className={s.emptyText}>
-                No agents match these filters.
-              </p>
-              <button
-                type="button"
-                className={s.resetPill}
-                onClick={resetFilters}
-              >
+              <p className={s.emptyText}>No agents match these filters.</p>
+              <button type="button" className={s.resetPill} onClick={resetFilters}>
                 Reset filters
               </button>
             </div>

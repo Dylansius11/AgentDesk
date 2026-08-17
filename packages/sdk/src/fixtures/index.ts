@@ -6,14 +6,14 @@
  * fixture-backed `AgentDeskClient` (task B1) reads from here; nothing in
  * `apps/*` should import fixture files directly (CLAUDE.md §6).
  */
-import { GRID_AGENTS } from "./agents/grid.js";
-import { REBALANCE_AGENTS } from "./agents/rebalance.js";
-import { YIELD_AGENTS } from "./agents/yield.js";
-import { HEALTH_AGENTS } from "./agents/health.js";
-import type { Agent } from "../schemas/agent.js";
+import { GRID_AGENTS } from "./agents/grid";
+import { REBALANCE_AGENTS } from "./agents/rebalance";
+import { YIELD_AGENTS } from "./agents/yield";
+import { HEALTH_AGENTS } from "./agents/health";
+import type { Agent } from "../schemas/agent";
 
 export { GRID_AGENTS, REBALANCE_AGENTS, YIELD_AGENTS, HEALTH_AGENTS };
-export { HIRE_SESSIONS } from "./hire-sessions.js";
+export { HIRE_SESSIONS } from "./hire-sessions";
 
 /** All 12 mock agents, 3 per category. */
 export const AGENTS: Agent[] = [...GRID_AGENTS, ...REBALANCE_AGENTS, ...YIELD_AGENTS, ...HEALTH_AGENTS];

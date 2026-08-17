@@ -13,14 +13,13 @@
  * mutated, so repeated `new FixturesAgentDeskClient()` instances (e.g. one
  * per test) start from clean, identical state.
  */
-import { randomUUID } from "node:crypto";
-import type { Agent } from "../schemas/agent.js";
-import type { HireSession } from "../schemas/hire-session.js";
-import { HireSessionSchema } from "../schemas/hire-session.js";
-import type { ProofRecord } from "../schemas/proof-record.js";
-import { AGENTS, AGENTS_BY_ID, HIRE_SESSIONS } from "../fixtures/index.js";
-import { mkHex32 } from "../fixtures/helpers.js";
-import { simulateLatency, sleep } from "./latency.js";
+import type { Agent } from "../schemas/agent";
+import type { HireSession } from "../schemas/hire-session";
+import { HireSessionSchema } from "../schemas/hire-session";
+import type { ProofRecord } from "../schemas/proof-record";
+import { AGENTS, AGENTS_BY_ID, HIRE_SESSIONS } from "../fixtures/index";
+import { mkHex32 } from "../fixtures/helpers";
+import { simulateLatency, sleep } from "./latency";
 import type {
   AgentDeskClient,
   AgentsSort,
@@ -28,7 +27,7 @@ import type {
   GetAgentsParams,
   GetProofRecordsParams,
   HireParams,
-} from "./types.js";
+} from "./types";
 
 /** Matches INTEGRATION.md's `PROTOCOL_FEE_BPS=300` (3%). */
 const PROTOCOL_FEE_BPS = 300;
@@ -119,7 +118,7 @@ export class FixturesAgentDeskClient implements AgentDeskClient {
       throw new Error(`FixturesAgentDeskClient.hire: unknown agentId "${params.agentId}"`);
     }
     const now = new Date().toISOString();
-    const jobId = `job-mock-${randomUUID()}`;
+    const jobId = `job-mock-${crypto.randomUUID()}`;
     const expiresAt = new Date(Date.now() + params.config.durationDays * 24 * 60 * 60 * 1000).toISOString();
     const session: HireSession = {
       id: jobId,

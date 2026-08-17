@@ -5,7 +5,7 @@
   flex-direction: column;
   gap: 40px;
   padding-top: 32px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .stat {
@@ -19,14 +19,14 @@
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1;
-  color: #000000;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .label {
   font-size: 13px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .freshness {
@@ -36,14 +36,14 @@
   margin-top: 8px;
   font-size: 11px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .pulseDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #000000;
+  background: var(--color-money-positive);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -72,7 +72,7 @@
   }
 
   .stat + .stat {
-    border-left: 1px solid rgba(0, 0, 0, 0.12);
+    border-left: 1px solid var(--color-border-subtle);
     padding-left: 40px;
   }
 }
