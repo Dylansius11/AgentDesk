@@ -8,6 +8,13 @@
       "when": 1786904785131,
       "tag": "0000_youthful_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786947185278,
+      "tag": "0001_fix_proof_records_composite_pk",
+      "breakpoints": true
     }
   ]
 }

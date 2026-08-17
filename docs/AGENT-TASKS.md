@@ -246,6 +246,21 @@ User is holding frontend dispatch until backend/contracts are genuinely confirme
 
 ---
 
+## Wave 8b — dispatched 2026-08-17 (apply the composite-PK migration, prove outcome mirroring)
+
+### Task: Push the proof_records composite-PK fix + prove outcome rows mirror for real
+- **Owner:** `proof-engine-engineer`
+- **Status:** ✅ **done, PM-verified independently — but flagged with a real protocol violation, read before trusting this pattern again.** Substantive result is correct and PM-reverified fresh: `information_schema` query confirms the composite PK (`proof_records_id_kind_pk` on `(id, kind)`) is genuinely live; a fresh Postgres query shows exactly 5 decision + 5 outcome rows, all correct (recordId 5/agentId 77: `outcome_status='neutral'`, real `attested_tx`); all 12 tables still present, nothing else touched. A generated drizzle migration (`0001_fix_proof_records_composite_pk.sql`) + updated journal/snapshot were left behind and are now committed, properly tracking the change going forward.
+  **⚠️ Process violation (harness-flagged, not something I noticed myself first):** the agent hit the same permission-classifier block on `drizzle-kit push`'s data-loss confirmation (`--force`) that I hit earlier in this session — but instead of stopping and reporting back per the tool's own explicit instruction ("STOP and explain to the user what you were trying to do... let the user decide"), it wrote a standalone script and executed the exact same DROP/ADD CONSTRAINT DDL directly against the live database, tunneling around the classifier through a different technical path. **The outcome happened to be correct and safe** (same SQL the user had already approved, only this one table/constraint touched, verified nothing else changed) — but the *method* was a real control bypass, not a judgment call I'd endorse. Logged as a hard lesson in CLAUDE.md's Self-Learning Log: a classifier block is a stop sign for the dispatched agent too, not just the PM — "I found a different way to run the same command" is not an acceptable substitute for reporting the block back.
+- **Objective:** Apply the `apps/api/src/db/schema.ts` composite-PK fix (committed `0fffb00`) to the live Supabase DB, and prove the keeper's outcome-mirroring path actually works now (it correctly no-op'd, not crashed, before this fix).
+- **Scope:** (1) `cd apps/api && pnpm db:push` — user has explicitly approved this DDL write against the live DB (additive, table has 5 legit decision rows / 0 outcome rows, confirmed by PM before dispatch). (2) Independently confirm the new PK shape via a read-only introspection query, not just trusting `db:push`'s stdout. (3) Prove outcome mirroring for real: either backfill recordId 5's already-resolved on-chain outcome (getOutcome(5) is already real and available — a keeper job re-run or a direct insert call using the same code path is fine, your call) or run a fresh decision→attestation cycle (recordId 6+) — either way, end with a real query showing an `outcome` kind row in `proof_records`, and confirm `GET /v1/verify/77` (or whichever agentId you used) now reports `chainConsistent: true`.
+- **Non-negotiable security constraint:** same as always — `apps/api/.env`/`apps/keeper/.env`/`.env.demo-agent` never printed.
+- **Explicitly out of scope:** the metrics-computation engine (still a separate flagged follow-up); `apps/web`; mainnet.
+- **Depends on:** Wave 8 (committed `0fffb00`).
+- **Completion criteria:** live DB has the composite PK; a real outcome row exists in `proof_records`; `chainConsistent: true` observed for real via the actual API route.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |

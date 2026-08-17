@@ -127,6 +127,13 @@ export const developers = pgTable('developers', {
 // breaking migration over real data. ERD.md §2's `proof_records` PK note
 // must be updated in the same commit as this file (doc contract, CLAUDE.md
 // §4).
+//
+// STATUS (2026-08-17, applied): migration `drizzle/0001_fix_proof_records_
+// composite_pk.sql` is live on the real Supabase instance — PM independently
+// re-verified via information_schema (constraint `proof_records_id_kind_pk`
+// on (id, kind)) and confirmed real outcome rows now write successfully
+// (5 decision + 5 outcome rows present, chainConsistent:true via
+// GET /v1/verify/:agentId). This code and the live DB now match.
 export const proofRecords = pgTable(
   'proof_records',
   {
