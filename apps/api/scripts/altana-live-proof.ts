@@ -96,7 +96,11 @@ async function main() {
   log('wallet key persisted early to', outPath, '(gitignored)')
 
   // 2. Fund with a little tBNB from the deployer ----------------------------
-  const fundAmount = parseEther('0.00025') // deployer balance is critically low (~0.0005 tBNB total) — keep this tiny; register:false below avoids the KeyStore registration fee
+  // Deployer was refunded to ~0.3 tBNB (2026-08-17) — plenty of headroom now,
+  // so this run funds generously enough to cover a REAL register:true grant
+  // (KeyStore registration fee) plus gas for grant+execute+revoke+the
+  // deliberately-failing post-revoke execute attempt.
+  const fundAmount = parseEther('0.02')
   log('funding wallet with', fundAmount.toString(), 'wei tBNB from deployer', deployerAccount.address)
   const fundTx = await deployerWalletClient.sendTransaction({
     to: wallet.address,
@@ -109,16 +113,10 @@ async function main() {
   log('wallet balance after funding:', balance.toString(), 'wei')
 
   // 3. Grant a real scoped session -------------------------------------------
-  // NOTE: register:false skips the public KeyStore registration fee
-  // (~0.0008 tBNB per fee call, x2 calls in the batch) — deployer testnet
-  // balance is currently ~0.0005 tBNB total (see honesty note in
-  // INTEGRATION.md I6), not enough to cover it alongside gas for
-  // fund+grant+execute+revoke. Permissions/expiry are STILL fully enforced
-  // on-chain by the account contract with register:false — the only
-  // difference is the session key is invisible to third-party KeyStore
-  // readers (verify_authorization) until registerSessionKey() is called
-  // later once more testnet funds are available. Flagged plainly in the
-  // final report — this is a real, known tradeoff, not a hidden one.
+  // Deployer now has plenty of headroom (~0.3 tBNB, refunded 2026-08-17) —
+  // this run uses register:true so the session is genuinely registered in
+  // the PUBLIC on-chain Keystore (not just enforced by the account contract),
+  // ticking the real "Keystore-registered" Altana-track checklist box.
   const expiry = Math.floor(Date.now() / 1000) + 24 * 60 * 60 // 24h
   const grant = await client.grantSession({
     wallet,
@@ -128,7 +126,7 @@ async function main() {
       spend: [{ limit: parseEther('0.005'), period: 'day' }],
     },
     expiry,
-    register: false,
+    register: true,
   })
   log('session granted. publicKey:', grant.publicKey, 'expiry:', new Date(expiry * 1000).toISOString())
   log('grant transactionHash:', grant.transactionHash ?? '(none reported by relay)')
