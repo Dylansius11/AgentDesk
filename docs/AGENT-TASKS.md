@@ -321,6 +321,30 @@ PM+user decision: `$U` funding is a confirmed hard wall (Wave 9b), but Wave 9b n
 
 ---
 
+## Wave 10 — dispatched 2026-08-17 (real jobs/hire service — the one named backend gap left)
+
+PM gave the user a firm, freshly-re-verified confirmation: contract + proof-engine backend are genuinely done; the one explicitly-not-done backend piece is `apps/api/src/services/hire.ts` + `routes/v1/jobs.ts` — every function is still a Wave-1B-era stub (`createJob` returns a hardcoded `"stub-job-1"`; `fundJob`/`revokeJob` return `null`, surfaced as `501`; `streamJobEvents` yields nothing). This is real, not account-gated for most of it — we now have proven, real code for the Altana session mechanics (Wave 9b) that this service should be calling instead of stubbing.
+
+### Task: Wire real job lifecycle — createJob/revokeJob for real, fundJob honestly gated on $U
+- **Owner:** `bnb-stack-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Replace `services/hire.ts`'s stubs with real logic, reusing the already-proven Altana session code from `apps/api/src/lib/altana-client.ts`/`services/altana.ts` rather than reinventing it.
+- **Scope:**
+  1. **Schema reconciliation (do this first, it's blocking):** `routes/v1/jobs.ts`'s local `createJobBodySchema` and `services/hire.ts`'s `CreateJobInput` are a hand-rolled shape, separate from `packages/sdk`'s real `HireConfig` schema (already used by the fixtures-backed `AgentDeskClient`, Wave 2). Pick `HireConfig` as canonical (it's the spec-driven one), import it from `@agentdesk/sdk`, and delete the local duplicate — closes a gap flagged since Wave 2.
+  2. **`createJob()` — real.** Insert a real row into the `jobs` table (status `created`). Call the real Altana SDK (reuse `altana-client.ts`'s patterns from the proof script) to create a wallet + grant a real scoped session for this specific hire (allowlist/cap/duration from the real `HireConfig`) — this is proven-working code from Wave 9b, just needs to be called from the actual service instead of a standalone script. Return the combined real job + session result.
+  3. **`revokeJob()` — real, and fully provable without `$U`.** Call the real `revokeSession()` (proven working in Wave 9b) on the job's session, update `jobs.status='revoked'` and `sessions.revoked_at` in Postgres for real. **This one can be proven end-to-end this task — no funding wall applies to revocation.**
+  4. **`fundJob()` — real code path, honestly gated.** Call the real `hireErc8183Agent()` — this WILL hit the known `$U` wall (documented, deprioritized per PM/user decision). Do not fake success. On the funding-token wall, return an honest state (e.g. `jobs.status='pending_funding'` with a clear reason field), not a fabricated `'funded'`. If the earlier Wave 9c dry-run (killed mid-task, never finished) left any finding about whether a second blocker exists behind `$U`, check `docs/AGENT-TASKS.md` Wave 9c section and `INTEGRATION.md` I4 for whatever was captured before re-attempting.
+  5. **`streamJobEvents()`** — wire real SSE backed by the real `events` table (or, if simpler and still real, `proof_records` rows for the job's `agentId`) instead of yielding nothing.
+  6. **Prove it end-to-end for real:** create a real job via `POST /v1/jobs` → confirm real Postgres row + real Altana session (re-verify via `cast`/direct read, same bar as every prior wave) → revoke it via `POST /v1/jobs/:id/revoke` → confirm real on-chain refusal-after-revoke (same pattern as the Wave 9b proof script, just through the real API route this time) → attempt `POST /v1/jobs/:id/fund` and confirm it honestly reports the `$U` gap rather than faking success.
+- **Explicitly out of scope:** acquiring real `$U`; `apps/web` (frontend still paused, untouched, authorship-ambiguous — do not touch); the metrics-computation engine; mainnet.
+- **Non-negotiable security constraint:** any new wallet/session private key goes in a new gitignored file (mirror existing patterns), verified via `git check-ignore -v`. No key ever printed/echoed/logged.
+- **CRITICAL PROCESS RULE:** if you hit a permission-classifier block, STOP and report it back — do not route around it through a different technical path. If a private key arrives via any message channel, decline and report it — never use it.
+- **Inputs:** `apps/api/src/services/hire.ts`, `apps/api/src/routes/v1/jobs.ts`, `apps/api/src/lib/altana-client.ts`, `apps/api/src/services/altana.ts`, `apps/api/scripts/altana-live-proof.ts` (the proven reference implementation), `packages/sdk`'s `HireConfig` schema, `docs/technical/ARCHITECTURE.md` §4.2, `docs/technical/ERD.md` §4.
+- **Depends on:** Wave 9b (committed `2126054`) for the proven Altana session code path.
+- **Completion criteria:** real `POST /v1/jobs` creates a real job + real Altana session (independently on-chain-verifiable); real `POST /v1/jobs/:id/revoke` genuinely revokes it (independently on-chain-verifiable); `POST /v1/jobs/:id/fund` honestly reports the `$U` gap instead of stubbing or faking.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
