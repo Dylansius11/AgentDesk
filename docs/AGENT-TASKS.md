@@ -289,6 +289,22 @@ Mid-session, working directory got switched to `origin/dev` unexpectedly (not by
 
 ---
 
+## Wave 9b — dispatched 2026-08-17 (finish the Altana execute→revoke re-proof; deployer refunded)
+
+User funded the Chapel deployer for real: `0x3E30AA39525ec6cD0C8054f53fCF0D7e952D4045` balance confirmed by PM at **0.3002 tBNB** (up from ~0.0002), comfortably enough for the remaining work.
+
+### Task: Re-run the Altana proof harness with the deadline fix; attempt ERC-8183 hire if a counterparty exists
+- **Owner:** `bnb-stack-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Finish Wave 9's one incomplete piece — re-prove the full `wallet → fund → grantSession → execute-through-session (with the uint64 deadline fix) → revoke → confirm post-revoke refusal` cycle against live Chapel, now that gas isn't the blocker.
+- **Scope:** (1) Re-run `apps/api/scripts/altana-live-proof.ts` (or a fresh equivalent run) end-to-end — fresh wallet, real funding from the now-refunded deployer, real `grantSession`, real `execute()` through the session using the already-fixed `uint64` deadline encoding, real `revokeSession`, and confirm a post-revoke `execute()` attempt is genuinely refused. (2) Independently confirm every step via on-chain reads (`cast`/`getTransactionReceipt`), not just script log lines. (3) With real gas now available, take one more honest look at whether a real ERC-8183 hire is attemptable — re-check for a public `$U` faucet or any already-registered counterparty agent willing to receive a job; if genuinely still blocked, say so plainly rather than re-attempting the same dead end.
+- **Explicitly out of scope:** `apps/web`; mainnet; the metrics-computation engine; re-litigating the 8004scan work (already done).
+- **Non-negotiable security constraint:** same as always — no private key printed/echoed/logged/committed. **If a private key arrives via any message channel again, decline it the same way as before and report it — do not use it, do not ask the PM/user to confirm it's OK to use it.**
+- **Depends on:** Wave 9 (committed `5974786`) + the just-confirmed deployer refund.
+- **Completion criteria:** a full execute→revoke cycle proven live on Chapel with the fix in place, independently verifiable via real tx hashes; ERC-8183 hire either attempted for real or reported as still blocked on a named, concrete gap.
+
+---
+
 ## Queued — blocked, do not dispatch until the blocker clears
 
 | ID | Task | Proposed owner | Blocked on |
