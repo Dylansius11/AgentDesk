@@ -1,0 +1,294 @@
+/* /style — design-token specimen + literal QA tool for the raw-hex sweep */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-canvas);
+}
+
+.intro {
+  margin: 16px 0 0;
+  max-width: 640px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.sectionHeading {
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.sectionNote {
+  margin: -12px 0 20px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- swatch grid ---------- */
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.swatchFill {
+  height: 72px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.swatchMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+}
+
+.swatchName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.swatchVar {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- type specimen ---------- */
+
+.typeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+}
+
+.typeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.typeRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.typeLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.typeSampleHeading1 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary);
+}
+
+.typeSampleHeading2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.typeSampleBody {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.typeSampleSecondary {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.typeSampleMono {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.moneyPositive {
+  color: var(--color-money-positive);
+}
+
+.moneyNegative {
+  color: var(--color-money-negative);
+}
+
+/* ---------- scale rows (spacing / radius) ---------- */
+
+.scaleList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scaleRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.scaleLabel {
+  width: 110px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.scaleBar {
+  height: 20px;
+  background: var(--color-accent-gold-soft);
+  border: 1px solid var(--color-accent-gold-border);
+  border-radius: var(--radius-sm);
+}
+
+.radiusBox {
+  width: 56px;
+  height: 56px;
+  background: var(--color-bg-surface-raised);
+  border: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+}
+
+/* ---------- elevation ---------- */
+
+.elevationGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
+}
+
+.elevationCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.elevation1 {
+  box-shadow: var(--shadow-1);
+}
+
+.elevation2 {
+  box-shadow: var(--shadow-2);
+}
+
+.elevation3 {
+  box-shadow: var(--shadow-3);
+}
+
+.elevationGold {
+  box-shadow: var(--shadow-gold-glow);
+}
+
+/* ---------- component examples ---------- */
+
+.componentRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-accent-gold-soft);
+  border: 1px solid var(--color-accent-gold-border);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-accent-gold);
+}
+
+.primaryButton {
+  min-height: 44px;
+  padding: 12px 24px;
+  background: var(--color-accent-gold);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-on-accent);
+  cursor: pointer;
+}
+
+.stopButtonSample {
+  min-height: 44px;
+  padding: 12px 24px;
+  background: transparent;
+  border: 2px solid var(--color-money-negative);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-money-negative);
+  cursor: pointer;
+}
+
+.deltaPositive,
+.deltaNegative {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaPositive {
+  color: var(--color-money-positive);
+}
+
+.deltaNegative {
+  color: var(--color-money-negative);
+}

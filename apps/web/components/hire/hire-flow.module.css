@@ -1,10 +1,10 @@
-/* Hire flow — 3-step wizard card in the hero's B&W language */
+/* Hire flow — 3-step wizard card */
 
 .page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--color-bg-canvas);
 }
 
 .main {
@@ -20,9 +20,9 @@
   position: relative;
   width: 100%;
   max-width: 640px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 24px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
   padding: 0 24px 32px;
   box-sizing: border-box;
   overflow: hidden;
@@ -34,12 +34,13 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--color-border-subtle);
 }
 
+/* Progress toward completing the hire — gold, this is the primary-action path. */
 .progressFill {
   height: 100%;
-  background: #000000;
+  background: var(--color-accent-gold);
   transform-origin: left;
 }
 
@@ -52,11 +53,11 @@
 }
 
 .stepLabel {
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--color-text-tertiary);
 }
 
 .stepLabelActive {
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .stepBody {
@@ -72,7 +73,7 @@
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .sub {
@@ -80,7 +81,7 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 1.5;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .fieldLabel {
@@ -88,7 +89,7 @@
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 /* --- step 1 controls --- */
@@ -102,33 +103,33 @@
 .amountInput {
   width: 140px;
   padding: 12px 16px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 14px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   font-size: 17px;
   font-weight: 400;
-  color: #000000;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .amountInput:focus {
   outline: none;
-  border-color: #000000;
+  border-color: var(--color-accent-gold);
 }
 
 .chipButton {
   padding: 9px 14px;
-  background: #f4f4f6;
+  background: var(--color-bg-surface-raised);
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .chipButton:hover {
-  background: #ebebef;
+  background: var(--color-bg-surface-hover);
 }
 
 .capRow {
@@ -139,7 +140,7 @@
 
 .capSlider {
   flex: 1;
-  accent-color: #000000;
+  accent-color: var(--color-accent-gold);
   height: 20px;
   cursor: pointer;
 }
@@ -150,7 +151,7 @@
   font-size: 20px;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: #000000;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -162,28 +163,28 @@
 
 .pill {
   padding: 9px 14px;
-  background: #f4f4f6;
+  background: var(--color-bg-surface-raised);
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .pillActive {
-  background: #000000;
-  color: #ffffff;
+  background: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .allowList {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -196,31 +197,31 @@
   padding: 14px 16px;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--color-border-default);
   cursor: pointer;
   text-align: left;
 }
 
 .allowLocked {
   cursor: default;
-  background: #fafafa;
+  background: var(--color-bg-surface-raised);
 }
 
 .allowText {
   font-size: 13px;
   font-weight: 400;
-  color: #000000;
+  color: var(--color-text-primary);
   line-height: 1.45;
 }
 
 .allowLocked .allowText {
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--color-text-tertiary);
 }
 
 .lockedNote {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
 }
 
@@ -229,17 +230,17 @@
   padding: 10px 16px;
   font-size: 11px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .toggleTrack {
   position: relative;
   width: 34px;
   height: 20px;
-  border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
   flex-shrink: 0;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .toggleKnob {
@@ -249,8 +250,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
-  transition: transform 0.2s ease;
+  background: var(--color-text-primary);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .knobOn {
@@ -258,7 +259,7 @@
 }
 
 .toggleTrack:has(.knobOn) {
-  background: #000000;
+  background: var(--color-accent-gold);
 }
 
 .riskRow {
@@ -273,11 +274,11 @@
 
 .riskValue {
   padding: 6px 14px;
-  background: #000000;
-  border-radius: 9999px;
+  background: var(--color-bg-surface-hover);
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .sentencePreview,
@@ -286,13 +287,13 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 1.6;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--color-text-secondary);
 }
 
 .sentencePreview {
   padding: 14px 16px;
-  background: #f4f4f6;
-  border-radius: 14px;
+  background: var(--color-bg-surface-raised);
+  border-radius: var(--radius-md);
 }
 
 .actions {
@@ -303,24 +304,26 @@
   margin-top: 12px;
 }
 
+/* Primary CTA — gold is reserved for verification + primary actions. */
 .blackPill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   padding: 14px 24px;
-  background: #000000;
+  background: var(--color-accent-gold);
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 13px;
-  font-weight: 500;
-  color: #ffffff;
+  font-weight: 600;
+  color: var(--color-text-on-accent);
   text-decoration: none;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .blackPill:hover {
-  opacity: 0.85;
+  background: var(--color-accent-gold-hover);
 }
 
 .blackPill:disabled {
@@ -331,20 +334,21 @@
 .ghostButton {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
   padding: 12px 20px;
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 9999px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 500;
-  color: #000000;
+  color: var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
 
 .ghostButton:hover {
-  border-color: rgba(0, 0, 0, 0.5);
+  border-color: var(--color-border-strong);
 }
 
 /* --- step 2 --- */
@@ -352,8 +356,8 @@
 .authList {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -362,7 +366,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .authRow:last-child {
@@ -383,25 +387,26 @@
 }
 
 .authCheck {
-  background: #f4f4f6;
-  color: rgba(0, 0, 0, 0.55);
+  background: var(--color-bg-surface-raised);
+  color: var(--color-text-secondary);
 }
 
+/* Authorization confirmed — gold, this is a verification moment. */
 .authCheckDone {
-  background: #000000;
-  color: #ffffff;
+  background: var(--color-accent-gold);
+  color: var(--color-text-on-accent);
 }
 
 .authLabel {
   font-size: 13px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .authLabelDone {
   font-size: 13px;
   font-weight: 500;
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .summaryCard {
@@ -409,8 +414,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 16px;
-  background: #f4f4f6;
-  border-radius: 16px;
+  background: var(--color-bg-surface-raised);
+  border-radius: var(--radius-lg);
 }
 
 .priceRows {
@@ -419,13 +424,13 @@
   gap: 6px 16px;
   margin-top: 6px;
   font-size: 13px;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .priceRows span:nth-child(even) {
   font-weight: 500;
-  color: #000000;
+  color: var(--color-text-primary);
   text-align: right;
 }
 
@@ -437,14 +442,14 @@
   gap: 7px;
   font-size: 13px;
   font-weight: 500;
-  color: #000000;
+  color: var(--color-money-positive);
 }
 
 .activeDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #000000;
+  background: var(--color-money-positive);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -457,33 +462,35 @@
 }
 
 .stopButton {
+  min-height: 44px;
   padding: 18px 64px;
-  background: #ffffff;
-  border: 2px solid #000000;
-  border-radius: 9999px;
+  background: transparent;
+  border: 2px solid var(--color-money-negative);
+  border-radius: var(--radius-full);
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: #000000;
+  color: var(--color-money-negative);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .stopButton:hover {
-  background: #000000;
-  color: #ffffff;
+  background: var(--color-money-negative);
+  color: var(--color-text-primary);
 }
 
 .stopNote {
   margin: 0;
   font-size: 12px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
+/* One confetti burst on hire — the screen's signature motion moment. */
 .confetti {
   position: absolute;
   top: 70px;
@@ -495,11 +502,11 @@
   position: absolute;
   width: 6px;
   height: 6px;
-  background: #000000;
+  background: var(--color-accent-gold);
 }
 
 .confettiGray {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--color-text-tertiary);
 }
 
 /* --- toast --- */
@@ -511,12 +518,14 @@
   z-index: 80;
   max-width: 320px;
   padding: 14px 18px;
-  background: #000000;
-  border-radius: 14px;
+  background: var(--color-bg-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   font-size: 13px;
   font-weight: 400;
-  color: #ffffff;
+  color: var(--color-text-primary);
   line-height: 1.5;
+  box-shadow: var(--shadow-2);
 }
 
 @keyframes pulse {

@@ -43,6 +43,9 @@ function EquityChart({ agent }: { agent: Agent }) {
   const line = `M${points.join(' L')}`
   const area = `${line} L${width - pad},${height} L${pad},${height} Z`
   const gridlines = [0.25, 0.5, 0.75].map((fraction) => pad + fraction * (height - pad * 2))
+  const isPositive = (series[series.length - 1] ?? 0) >= 0
+  const lineColor = isPositive ? 'var(--color-money-positive)' : 'var(--color-money-negative)'
+  const areaColor = isPositive ? 'var(--color-money-positive-soft)' : 'var(--color-money-negative-soft)'
 
   return (
     <div className={styles.chartCard}>
@@ -69,14 +72,14 @@ function EquityChart({ agent }: { agent: Agent }) {
             x2={width - pad}
             y1={y}
             y2={y}
-            stroke="rgba(0, 0, 0, 0.07)"
+            stroke="var(--color-border-subtle)"
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
           />
         ))}
         <motion.path
           d={area}
-          fill="rgba(0, 0, 0, 0.05)"
+          fill={areaColor}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, ease: EASE }}
@@ -84,7 +87,7 @@ function EquityChart({ agent }: { agent: Agent }) {
         <motion.path
           d={line}
           fill="none"
-          stroke="#000000"
+          stroke={lineColor}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
