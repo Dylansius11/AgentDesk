@@ -500,7 +500,7 @@ Second half of the user's approval. Both platforms are plain self-serve (already
 
 ### Task: Deploy apps/web to Vercel, apps/api + apps/keeper to Railway
 - **Owner:** `bnb-stack-engineer`
-- **Status:** 🟡 dispatched
+- **Status:** 🟡 **Vercel done, PM-verified live. Railway blocked on a real regression, not a deploy-config issue — see Wave 16.** `apps/web` is genuinely live: `https://agentdesk-web-delta.vercel.app`, PM independently curled `/`, `/marketplace`, `/dashboard` — all real 200s with genuine rendered HTML, not a build-failure page. Railway project/services/env vars are all correctly provisioned (agent reproduced the build failure locally too, confirming it's not deploy-config), but `pnpm --filter api check`/`pnpm --filter keeper check` both fail — **root cause traced to a PM mistake, not this agent's work**: Wave 13b's `.js`-extension strip in `packages/sdk` fixed `apps/web` (bundler resolution) but broke `apps/api`/`apps/keeper` (NodeNext resolution, which requires those same extensions) — the PM committed that fix without re-running api/keeper's typecheck. Logged in CLAUDE.md's Self-Learning Log. **One process incident, self-corrected:** the agent briefly printed raw secret values into its own tool transcript via `railway variable list`'s default table view (never into its report, never committed) — caught itself, switched to `--json | jq 'keys'`, flagged it unprompted. Also logged in CLAUDE.md. Fix dispatched as Wave 16; Railway redeploy is the one command each (`railway up --service api/keeper`) once that lands.
 - **Objective:** Get real, public URLs live for the frontend and backend — the actual "is this judgeable right now" bar.
 - **Scope:**
   1. **`apps/web` → Vercel.** Use the `vercel` MCP tools / `vercel` skill (already available) to link/create a project rooted at `apps/web` in this pnpm monorepo (Vercel needs the right root-directory + build-command config for a monorepo workspace — check `vercel:bootstrap`/`vercel:deploy` skill guidance). Deploy to production. If Vercel auth isn't yet connected in this session, the `authenticate`/`complete_authentication` MCP flow may need a human step (browser OAuth) — if so, STOP and report exactly what's needed rather than guessing around it.
@@ -513,6 +513,26 @@ Second half of the user's approval. Both platforms are plain self-serve (already
 - **Inputs:** `apps/web`, `apps/api`, `apps/keeper` (all already real/working locally), `apps/api/.env`, `apps/keeper/.env` (local secrets, never print), `docs/technical/INTEGRATION.md`, `vercel:bootstrap`/`vercel:deploy`/`use-railway` skills.
 - **Depends on:** nothing new — all three apps are already real and working locally.
 - **Completion criteria:** a real, live, public Vercel URL serving `apps/web`; a real, live, public Railway URL serving `apps/api` (and `apps/keeper` running as a background worker); both independently curl-verified by the PM before being called done.
+
+---
+
+## Wave 16 — dispatched 2026-08-18 (fix packages/sdk's dual moduleResolution break — PM regression from Wave 13b)
+
+Wave 13b fixed `apps/web`'s broken `next build` by stripping `.js` extensions from `packages/sdk/src`'s internal relative imports. That's correct for `apps/web`/`packages/sdk` (`moduleResolution: "bundler"`) but broke `apps/api`/`apps/keeper` (`moduleResolution: "NodeNext"`, which requires explicit `.js` extensions even on `.ts` source — a real Node-ESM resolution rule, not a style choice). The PM committed that fix without re-running `apps/api`/`apps/keeper`'s typecheck — a real process gap, logged in CLAUDE.md's Self-Learning Log. This wave fixes it properly, not with another string-replace band-aid.
+
+### Task: Give `packages/sdk` a resolution strategy that satisfies both `bundler` and `NodeNext` consumers at once
+- **Owner:** `proof-engine-engineer` (owns `packages/sdk`)
+- **Status:** 🟡 dispatched
+- **Objective:** `apps/web` (bundler resolution, consumes raw `packages/sdk/src` TS directly via webpack/Turbopack) and `apps/api`/`apps/keeper` (NodeNext resolution, requires `.js`-suffixed specifiers) both need to typecheck AND build/boot cleanly against the same `packages/sdk` source — permanently, not as a one-off fix that breaks the other side again next time someone touches it.
+- **Scope:** Investigate and choose the most durable real fix, likely one of:
+  1. **TS 5.0+ `bundler` resolution mode explicitly supports `.js`-suffixed specifiers resolving to `.ts` source** (this was one of the design goals of `bundler` mode) — if true, simply restoring the `.js` extensions (undoing Wave 13b's string-replace) might satisfy both `bundler` AND `NodeNext` simultaneously. Test this hypothesis first — it's the cheapest fix if it holds.
+  2. If (1) doesn't hold for Next's actual webpack/Turbopack bundler (as opposed to tsc's own `bundler` typecheck mode — these can differ), give `packages/sdk` a real build step (tsup/tsc `-b`) producing compiled `dist/*.js` + `.d.ts` with correct extensions, and point `package.json`'s `exports` field at the built output for all consumers (not raw `src/`) — the standard, durable monorepo pattern, avoiding this whole class of bug going forward.
+  3. Whatever you choose, it must not regress anything already proven working — re-verify ALL of: `pnpm --filter @agentdesk/sdk run check`, `fixtures:validate`, `client/smoke.ts` (17/17), a clean `apps/web` `next build`, AND `pnpm --filter api check` + `pnpm --filter keeper check` — all five, not just the ones the immediate symptom touched. This is exactly the gap that caused this regression in the first place.
+- **Explicitly out of scope:** `apps/web` feature code (should need zero changes if the sdk fix is done right); Railway redeploy itself (separate, trivial follow-up once this lands — `railway up --service api/keeper`); any other app logic.
+- **Non-negotiable process rules:** do not commit — PM reviews and commits, and will personally re-run all five checks above before committing this time, no exceptions; if a permission-classifier block is hit, STOP and report it back.
+- **Inputs:** `packages/sdk/package.json`, `packages/sdk/tsconfig.json`, `apps/web/tsconfig.json`, `apps/api/tsconfig.json`, `apps/keeper/tsconfig.json`, the current build error output (`pnpm --filter api check`).
+- **Depends on:** nothing new — this is a bugfix on already-committed code.
+- **Completion criteria:** `pnpm --filter @agentdesk/sdk run check`, `fixtures:validate`, `client/smoke.ts`, `apps/web`'s `next build`, `apps/api`'s `tsc --noEmit`, and `apps/keeper`'s `tsc --noEmit` are ALL green simultaneously, off one consistent `packages/sdk` source — independently re-verified by the PM before commit.
 
 ---
 

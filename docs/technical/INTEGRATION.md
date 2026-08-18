@@ -236,6 +236,20 @@ MAINNET_CONFIRM=                    # must be exactly "yes" to deploy to chain 5
 
 ---
 
+## I16 · Deployed URLs (live public infra, Wave 15)
+
+| Target | Platform | URL | Status |
+|---|---|---|---|
+| `apps/web` | Vercel (project `agentdesk-web`, root dir `apps/web`) | **https://agentdesk-web-delta.vercel.app** | 🟢 live — curl-verified 200, real HTML (`<title>AgentDesk — Proof, not promises.</title>`), `/marketplace` also 200. Phase A fixtures-backed, no backend env vars needed yet. |
+| `apps/api` | Railway (project `agentdesk`, service `api`) | *(not yet generated — build fails before a domain is created)* | 🔴 blocked — see below |
+| `apps/keeper` | Railway (project `agentdesk`, service `keeper`) | background worker, no public domain needed | 🔴 blocked — same root cause |
+
+**Vercel config notes:** the pnpm-workspace monorepo needs `.vercel/project.json` linked with Root Directory = `apps/web` (`vercel project update agentdesk-web --root-directory apps/web`) and the deploy invoked from the **repo root** (not `apps/web`) so the whole monorepo uploads — Vercel then installs at root and runs `turbo run build` filtered to `web`. Deploying with cwd=`apps/web` alone only uploads that subtree and fails on the `workspace:*` dependency.
+
+**Railway config:** project `agentdesk` (workspace "YSL's Projects"), two services `api` and `keeper`, each with `buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter <api|keeper> build`, `startCommand: pnpm --filter <api|keeper> start`. All real env vars from `apps/api/.env` + `.env.demo-agent` + `.env.altana-agent` (api) and `apps/keeper/.env` (keeper) are set on the respective Railway services via `railway variable set --stdin` (values never printed to logs/reports). **Both builds currently fail** — root cause is a pre-existing bug, not a deploy-config problem: `apps/api`/`apps/keeper`'s `tsconfig.json` sets `moduleResolution: "NodeNext"`, which requires explicit `.js` extensions on relative imports; `packages/sdk/src/index.ts`'s `export * from "./schemas/index"` (etc., no extension) fails under that resolution mode when type-checked from a NodeNext consumer, which cascades into "no exported member" errors for `proofLedgerAbi`, `AddressSchema`, `AgentIdSchema`, `HireConfig`, `CreateJobInput`, `CreateSessionInput`, etc. across `apps/api`/`apps/keeper`. Reproduced identically with plain local `pnpm --filter api check` / `pnpm --filter keeper check` — confirmed unrelated to Railway. Fix belongs to whoever owns `packages/sdk` (likely `proof-engine-engineer`, since it also touches `abi/index`); once `pnpm --filter api check` and `pnpm --filter keeper check` pass locally, redeploy with `railway up --service api --environment production` / `railway up --service keeper --environment production` from the repo root — project/services/env vars are already provisioned and need no further setup.
+
+---
+
 ## I15 · MCP connect-in guide (how to wire each server)
 
 ### 1. Official BNB Chain MCP (`@bnb-chain/mcp`) — chain ops + ERC-8004

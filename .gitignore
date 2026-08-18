@@ -45,3 +45,8 @@ Thumbs.db
 coverage/
 .turbo/
 wrangler/
+
+# Deploy tool local project links (Wave 15) — project IDs, not secrets, but
+# machine-local and regenerable via `vercel link` / `railway link`.
+.vercel/
+.railway/
