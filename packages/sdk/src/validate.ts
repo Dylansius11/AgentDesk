@@ -7,10 +7,10 @@
  * exit, every issue printed — on any drift. Run directly with tsx, no build
  * step required.
  */
-import { AgentSchema } from "./schemas/agent";
-import { HireSessionSchema } from "./schemas/hire-session";
-import { CATEGORIES, type Category } from "./schemas/category";
-import { AGENTS, HIRE_SESSIONS } from "./fixtures/index";
+import { AgentSchema } from "./schemas/agent.js";
+import { HireSessionSchema } from "./schemas/hire-session.js";
+import { CATEGORIES, type Category } from "./schemas/category.js";
+import { AGENTS, HIRE_SESSIONS } from "./fixtures/index.js";
 
 let failures = 0;
 

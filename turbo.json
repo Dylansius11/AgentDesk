@@ -6,6 +6,7 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
@@ -13,7 +14,7 @@
       "cache": false
     },
     "check": {
-      "dependsOn": ["^check"],
+      "dependsOn": ["^build", "^check"],
       "cache": false
     },
     "fixtures:validate": {

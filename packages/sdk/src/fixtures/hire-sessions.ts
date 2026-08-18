@@ -6,8 +6,8 @@
  * API client (that's task B1); these exist purely so `fixtures:validate`
  * proves this schema, not just `Agent`, actually holds real-shaped data.
  */
-import type { HireSession } from "../schemas/hire-session";
-import { isoAt, mkAddress, mkHex32 } from "./helpers";
+import type { HireSession } from "../schemas/hire-session.js";
+import { isoAt, mkAddress, mkHex32 } from "./helpers.js";
 
 /** Nina's HealthGuard hire — the live, active session from docs/demo-script.md. */
 const ninaHiresHealthGuard: HireSession = {

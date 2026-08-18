@@ -13,13 +13,13 @@
  * mutated, so repeated `new FixturesAgentDeskClient()` instances (e.g. one
  * per test) start from clean, identical state.
  */
-import type { Agent } from "../schemas/agent";
-import type { HireSession } from "../schemas/hire-session";
-import { HireSessionSchema } from "../schemas/hire-session";
-import type { ProofRecord } from "../schemas/proof-record";
-import { AGENTS, AGENTS_BY_ID, HIRE_SESSIONS } from "../fixtures/index";
-import { mkHex32 } from "../fixtures/helpers";
-import { simulateLatency, sleep } from "./latency";
+import type { Agent } from "../schemas/agent.js";
+import type { HireSession } from "../schemas/hire-session.js";
+import { HireSessionSchema } from "../schemas/hire-session.js";
+import type { ProofRecord } from "../schemas/proof-record.js";
+import { AGENTS, AGENTS_BY_ID, HIRE_SESSIONS } from "../fixtures/index.js";
+import { mkHex32 } from "../fixtures/helpers.js";
+import { simulateLatency, sleep } from "./latency.js";
 import type {
   AgentDeskClient,
   AgentsSort,
@@ -27,7 +27,7 @@ import type {
   GetAgentsParams,
   GetProofRecordsParams,
   HireParams,
-} from "./types";
+} from "./types.js";
 
 /** Matches INTEGRATION.md's `PROTOCOL_FEE_BPS=300` (3%). */
 const PROTOCOL_FEE_BPS = 300;

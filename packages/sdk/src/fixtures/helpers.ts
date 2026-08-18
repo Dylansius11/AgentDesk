@@ -9,8 +9,8 @@
  * numbers. Deterministic (seeded by a plain string) so fixtures are stable
  * across runs/diffs.
  */
-import type { Address, Hex32, TxHash } from "../schemas/primitives";
-import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record";
+import type { Address, Hex32, TxHash } from "../schemas/primitives.js";
+import type { ProofAction, ProofDecision, ProofOutcome, ProofRecord } from "../schemas/proof-record.js";
 
 /**
  * Deterministic 32-byte hex digest from a seed string — NOT a real hash

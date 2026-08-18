@@ -10,12 +10,12 @@
  * schema (ARCHITECTURE.md §3 import rule: sdk is the shared seam).
  */
 import { z } from "zod";
-import { AddressSchema, AgentIdSchema, IsoDatetimeSchema, Usd1NonNegativeSchema } from "./primitives";
-import { CategorySchema } from "./category";
-import { TrustPanelSchema } from "./trust-panel";
-import { ProofMetricsSchema } from "./proof-metrics";
-import { EquityCurveSchema } from "./equity-curve";
-import { ProofRecordListSchema } from "./proof-record";
+import { AddressSchema, AgentIdSchema, IsoDatetimeSchema, Usd1NonNegativeSchema } from "./primitives.js";
+import { CategorySchema } from "./category.js";
+import { TrustPanelSchema } from "./trust-panel.js";
+import { ProofMetricsSchema } from "./proof-metrics.js";
+import { EquityCurveSchema } from "./equity-curve.js";
+import { ProofRecordListSchema } from "./proof-record.js";
 
 export const RiskLevelSchema = z.enum(["low", "medium", "high"]);
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;

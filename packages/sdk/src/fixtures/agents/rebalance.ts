@@ -2,8 +2,8 @@
  * packages/sdk/src/fixtures/agents/rebalance.ts — Rebalancing (LP ranges)
  * category (3 agents), all verified.
  */
-import type { Agent } from "../../schemas/agent";
-import { buildAction, buildResolvedRecord, isoAt, mkAddress } from "../helpers";
+import type { Agent } from "../../schemas/agent.js";
+import { buildAction, buildResolvedRecord, isoAt, mkAddress } from "../helpers.js";
 
 const rangeRanger: Agent = {
   id: "2001",

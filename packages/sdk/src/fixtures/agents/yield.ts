@@ -3,8 +3,8 @@
  * (3 agents). YieldShepherd & AlphaYield: verified. YieldPilot: unverified
  * (fresh listing, one decision registered, nothing resolved yet).
  */
-import type { Agent } from "../../schemas/agent";
-import { buildAction, buildPendingRecord, buildResolvedRecord, isoAt, mkAddress } from "../helpers";
+import type { Agent } from "../../schemas/agent.js";
+import { buildAction, buildPendingRecord, buildResolvedRecord, isoAt, mkAddress } from "../helpers.js";
 
 const yieldShepherd: Agent = {
   id: "3001",
