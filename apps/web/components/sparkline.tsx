@@ -1,7 +1,6 @@
 /*
- * Shared sparkline: generated SVG path (never an image), colored by trend
- * direction — money-positive/negative tokens when the series has a clear
- * up/down slope, neutral text otherwise. Pure SVG — safe in server components.
+ * Shared sparkline: smooth-ish black stroke with a faint fill, sized by CSS.
+ * Pure SVG — safe in server components.
  */
 export default function Sparkline({
   values,
@@ -29,25 +28,10 @@ export default function Sparkline({
     .join(' ')
   const area = `${line} L${width - pad},${height} L${pad},${height} Z`
 
-  const resolvedTone =
-    tone === 'auto'
-      ? (values[values.length - 1] ?? 0) >= (values[0] ?? 0)
-        ? 'positive'
-        : 'negative'
-      : tone
-
-  const stroke =
-    resolvedTone === 'positive'
-      ? 'var(--color-money-positive)'
-      : resolvedTone === 'negative'
-        ? 'var(--color-money-negative)'
-        : 'var(--color-text-primary)'
-  const fill =
-    resolvedTone === 'positive'
-      ? 'var(--color-money-positive-soft)'
-      : resolvedTone === 'negative'
-        ? 'var(--color-money-negative-soft)'
-        : 'var(--color-border-subtle)'
+  // tone is accepted for API compatibility with callers but the palette here
+  // is intentionally the original flat black/faint-fill look, not semantic
+  // money coloring — see docs/AGENT-TASKS.md's style revert entry.
+  void tone
 
   return (
     <svg
@@ -56,11 +40,11 @@ export default function Sparkline({
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <path d={area} fill={fill} stroke="none" />
+      <path d={area} fill="rgba(0, 0, 0, 0.05)" stroke="none" />
       <path
         d={line}
         fill="none"
-        stroke={stroke}
+        stroke="#000000"
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
