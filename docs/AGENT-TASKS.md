@@ -472,6 +472,50 @@ Wave 13's `frontend-polish` dispatch stalled (watchdog: no progress for 600s) pa
 
 ---
 
+## Wave 14 — dispatched 2026-08-18 (seed real `listings` rows — unblock the leaderboard)
+
+User approved both remaining priority items (seed listings + deploy) — this wave covers the first, smaller one. The metrics engine (Wave 11) and `GET /v1/leaderboard`'s query (Wave 8) are both real and proven; the only reason the leaderboard renders empty is `listings` (marketplace metadata: pricing, description, publish state) having zero rows. No agent has ever been "published" to the marketplace.
+
+### Task: Publish real `listings` rows for the agents that already have real proof/metrics data
+- **Owner:** `bnb-stack-engineer`
+- **Status:** ✅ **done, PM-verified independently; one honesty flag raised and resolved by user decision.** Re-ran the exact `GET /v1/leaderboard` call myself against a freshly-booted `apps/api` — matches the agent's report exactly (agent `1`: grid, winRate 0.25, tasksResolved 4; agent `77`: health, winRate 0, tasksResolved 1; both `window: "30d"`, real non-empty data). Only two agent ids (`1`, `77`) have real `proof_metrics` — both are AgentDesk's own proof-engine test agents from earlier waves (Chapel testnet dev/QA activity), not distinct real trading strategies, and no `packages/sdk` fixture matches their ids. The agent correctly refused to fabricate numbers (`pricePerTaskUsd1`/`riskLevel`/`defaultCaps` left `null`, tagline/description explicitly labeled `PLACEHOLDER LISTING` stating these are proof-engine test agents) — but `category` (the one NOT-NULL field) had no real source of truth, so it assigned `grid`/`health` arbitrarily and flagged this rather than hiding it. **PM raised this to the user as a real Agent-Diversity/honesty concern (CLAUDE.md §2/§3) rather than treating it as automatically fine** — arbitrary categories on what's actually the same kind of test fixture could misrepresent diversity to a judge, even though no *number* was fabricated. **User decision: keep as-is** (option 1 of 3 offered) — the placeholder labeling is honest enough for now, revisit if/when the real GridGoblin/YieldShepherd/HealthGuard/RangeRanger roster ever lands (still blocked on AWS Agent Studio/Agent.family). No file changes — pure data seed, nothing to commit.
+- **Objective:** Give the real, already-working leaderboard query something non-empty to return, without fabricating anything that isn't backed by real data.
+- **Scope:**
+  1. Check `apps/api/src/db/schema.ts`'s `listings` table shape (per `docs/technical/ERD.md`) — likely holds pricing/fee model, category, description, publish status, and an FK to `agents`.
+  2. Identify which `agents` rows currently have real `proof_metrics` data (the ones from Waves 8-11's real on-chain activity — check via a real query, don't guess ids) and insert real `listings` rows for those specifically. Do NOT invent listings for agents that have no real proof history — that would defeat the whole point of the leaderboard being proof-derived, not editorial.
+  3. Pricing/description fields: base these on the corresponding `packages/sdk` fixture data for that agent if the ids line up (they should, since fixtures were designed to mirror the intended real agent roster), rather than making up new numbers. If an agent has real proof data but no matching fixture, use clearly-labeled placeholder copy rather than fabricating a specific price — flag this rather than guessing.
+  4. **Prove it for real:** confirm via a direct Postgres query that the new rows exist, then hit the real `GET /v1/leaderboard` route on a freshly-booted `apps/api` and confirm it now returns real, non-empty data — not a stub.
+  5. Update `docs/technical/ERD.md`/`INTEGRATION.md` only if this reveals any drift from what's documented (e.g. a field that doesn't exist yet) — don't restructure the schema, this is a data-seeding task, not a schema-migration task. If the schema itself needs a change to make this insert possible, STOP and report that back rather than pushing through it.
+- **Explicitly out of scope:** `apps/web`; any schema/migration change (report back if one seems necessary); building a real "publish" flow/UI (that's a separate future feature — this is seeding data directly); mainnet.
+- **Non-negotiable process rules:** do not commit — PM reviews and commits; if a permission-classifier block is hit (e.g. on a DB write confirmation), STOP and report it back, do not route around it; no private key handling expected in this task.
+- **Inputs:** `apps/api/src/db/schema.ts` (`listings`, `agents`, `proof_metrics` tables), `docs/technical/ERD.md`, `packages/sdk/src/fixtures/agents/*` (for realistic pricing/description reference), `apps/api/.env` (already populated, never print).
+- **Depends on:** Wave 11 (real metrics engine, already committed) — need real `proof_metrics` rows to know which agents are legitimately listable.
+- **Completion criteria:** real `listings` rows exist in Postgres for agents with real proof/metrics history; `GET /v1/leaderboard` returns real non-empty data through the live API, independently confirmed.
+
+---
+
+## Wave 15 — dispatched 2026-08-18 (public deploy — Vercel for apps/web, Railway for apps/api + apps/keeper)
+
+Second half of the user's approval. Both platforms are plain self-serve (already confirmed, not account-gated) — this closes the "publicly accessible during the whole judging window" requirement, which is required regardless of `apps/web`'s remaining feature gaps.
+
+### Task: Deploy apps/web to Vercel, apps/api + apps/keeper to Railway
+- **Owner:** `bnb-stack-engineer`
+- **Status:** 🟡 dispatched
+- **Objective:** Get real, public URLs live for the frontend and backend — the actual "is this judgeable right now" bar.
+- **Scope:**
+  1. **`apps/web` → Vercel.** Use the `vercel` MCP tools / `vercel` skill (already available) to link/create a project rooted at `apps/web` in this pnpm monorepo (Vercel needs the right root-directory + build-command config for a monorepo workspace — check `vercel:bootstrap`/`vercel:deploy` skill guidance). Deploy to production. If Vercel auth isn't yet connected in this session, the `authenticate`/`complete_authentication` MCP flow may need a human step (browser OAuth) — if so, STOP and report exactly what's needed rather than guessing around it.
+  2. **`apps/api` + `apps/keeper` → Railway.** Use the `railway` MCP tools / `use-railway` skill to create (or confirm existing) services for both apps in this monorepo. Set real environment variables (`DATABASE_URL`, `DIRECT_URL`, `SCAN8004_API_KEY`, `BSC_TESTNET_RPC_URL`, `PROOFLEDGER_ADDRESS_TESTNET`, `KEEPER_ATTESTER_KEY`, etc. — check `apps/api/.env`/`apps/keeper/.env` locally for the full real list, but NEVER print/echo any value; set via the Railway tool's variable-set calls only, sourced programmatically). Same auth caveat as above — if Railway needs a human OAuth/login step, STOP and report it.
+  3. **Prove it for real:** curl the live Vercel URL and the live Railway API URL yourself after deploy; confirm `apps/web`'s live pages actually render (not a build-failure page) and `apps/api`'s `/api/health`/`/v1/agents` respond correctly from the public URL, not just localhost.
+  4. Update `docs/technical/INTEGRATION.md` with the real deployed URLs once confirmed live.
+- **Explicitly out of scope:** custom domains; CI/CD pipeline polish beyond what's needed for one working deploy; mainnet; `apps/web` feature work.
+- **Non-negotiable security constraint:** every secret env var goes through the deploy tool's variable-set mechanism, never printed/echoed/logged in any report. If a private key (`KEEPER_ATTESTER_KEY` or any deployer/attester/demo-agent key) needs to move from a local `.env` file into Railway, do it via the tool call directly reading the local file — never paste it into chat/report text.
+- **CRITICAL PROCESS RULE:** if you hit a permission-classifier block, an OAuth/login wall, or any point requiring a human-only step, STOP and report it back clearly — do not attempt a workaround.
+- **Inputs:** `apps/web`, `apps/api`, `apps/keeper` (all already real/working locally), `apps/api/.env`, `apps/keeper/.env` (local secrets, never print), `docs/technical/INTEGRATION.md`, `vercel:bootstrap`/`vercel:deploy`/`use-railway` skills.
+- **Depends on:** nothing new — all three apps are already real and working locally.
+- **Completion criteria:** a real, live, public Vercel URL serving `apps/web`; a real, live, public Railway URL serving `apps/api` (and `apps/keeper` running as a background worker); both independently curl-verified by the PM before being called done.
+
+---
+
 ## Backlog / unresolved ownership questions for the user
 
 - No specialist agent cleanly owns generic non-chain, non-proof, non-frontend backend scaffolding (e.g. `apps/api` Hono skeleton, `apps/keeper` skeleton) when it's pure plumbing rather than chain-integration or proof-metrics logic. For Phase A these are stubs only (out of scope until Phase B per BUILD-PLAN), so no action needed yet — flagging so Phase B dispatch doesn't stall on "whose job is this."
