@@ -19,12 +19,12 @@
   /* Values expressed as rgb()/rgba() rather than hex literals — this block
      IS the one legitimate source of these color values; every consumer
      below reaches them through the custom property, never a literal. */
-  --color-bg-canvas: rgb(11, 14, 17); /* near-black canvas */
-  --color-bg-surface: rgb(18, 22, 27); /* card surface */
-  --color-bg-surface-raised: rgb(24, 29, 36); /* raised card / modal */
-  --color-bg-surface-hover: rgb(30, 36, 44); /* hover state */
+  --color-bg-canvas: rgb(11, 14, 17); /* #0b0e11 */
+  --color-bg-surface: rgb(18, 22, 27); /* #12161b */
+  --color-bg-surface-raised: rgb(24, 29, 36); /* #181d24 */
+  --color-bg-surface-hover: rgb(30, 36, 44); /* #1e242c */
   --color-bg-overlay: rgba(5, 7, 9, 0.72);
-  --color-bg-inverse: rgb(245, 246, 247); /* light chip on dark bg */
+  --color-bg-inverse: rgb(245, 246, 247); /* #f5f6f7 */
 
   /* ── Borders ─────────────────────────────────────────────────────── */
   --color-border-subtle: rgba(245, 246, 247, 0.08);
@@ -32,27 +32,27 @@
   --color-border-strong: rgba(245, 246, 247, 0.24);
 
   /* ── Text ────────────────────────────────────────────────────────── */
-  --color-text-primary: rgb(245, 246, 247); /* primary reading color */
-  --color-text-secondary: rgb(163, 173, 186); /* secondary reading color */
-  --color-text-tertiary: rgb(107, 118, 132); /* least-emphasis text */
-  --color-text-inverse: rgb(11, 14, 17); /* text on light/gold surfaces */
-  --color-text-on-accent: rgb(20, 17, 10); /* text on gold buttons */
+  --color-text-primary: rgb(245, 246, 247); /* #f5f6f7 */
+  --color-text-secondary: rgb(163, 173, 186); /* #a3adba */
+  --color-text-tertiary: rgb(107, 118, 132); /* #6b7684 */
+  --color-text-inverse: rgb(11, 14, 17); /* #0b0e11 */
+  --color-text-on-accent: rgb(20, 17, 10); /* #14110a */
 
   /* ── BNB gold — verification + primary actions ONLY, never decoration ── */
-  --color-accent-gold: rgb(240, 185, 11); /* BNB gold */
-  --color-accent-gold-hover: rgb(252, 213, 53); /* gold hover */
+  --color-accent-gold: rgb(240, 185, 11); /* #f0b90b */
+  --color-accent-gold-hover: rgb(252, 213, 53); /* #fcd535 */
   --color-accent-gold-soft: rgba(240, 185, 11, 0.12);
   --color-accent-gold-border: rgba(240, 185, 11, 0.35);
 
   /* ── Money semantics ─────────────────────────────────────────────── */
-  --color-money-positive: rgb(34, 197, 94); /* gains, verified-up */
+  --color-money-positive: rgb(34, 197, 94); /* #22c55e */
   --color-money-positive-soft: rgba(34, 197, 94, 0.12);
-  --color-money-negative: rgb(239, 68, 68); /* losses, verified-down */
+  --color-money-negative: rgb(239, 68, 68); /* #ef4444 */
   --color-money-negative-soft: rgba(239, 68, 68, 0.12);
   --color-money-neutral: var(--color-text-secondary);
 
   /* ── Focus ───────────────────────────────────────────────────────── */
-  --color-focus-ring: rgb(240, 185, 11); /* BNB gold */
+  --color-focus-ring: rgb(240, 185, 11); /* #f0b90b */
 
   /* ── Type ────────────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

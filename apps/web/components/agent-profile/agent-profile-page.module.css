@@ -4,20 +4,20 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-canvas);
+  background: #ffffff;
 }
 
 .back {
   display: inline-flex;
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
   text-decoration: none;
-  transition: color var(--duration-fast) var(--ease-out);
+  transition: color 0.2s ease;
 }
 
 .back:hover {
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 /* ---------- header ---------- */
@@ -35,11 +35,11 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: var(--color-bg-surface-raised);
-  border-radius: var(--radius-lg);
+  background: #000000;
+  border-radius: 18px;
   font-size: 22px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #ffffff;
   flex-shrink: 0;
 }
 
@@ -62,31 +62,26 @@
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
-/* VerifiedBadge — gold is reserved for verification + primary actions. */
 .verifiedPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   padding: 6px 14px;
-  background: var(--color-accent-gold-soft);
-  border: 1px solid var(--color-accent-gold-border);
-  border-radius: var(--radius-full);
+  background: #000000;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-accent-gold);
+  color: #ffffff;
   white-space: nowrap;
 }
 
 .noProofPill {
   padding: 6px 14px;
-  background: var(--color-bg-surface);
-  border-radius: var(--radius-full);
+  background: #f4f4f6;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
   white-space: nowrap;
 }
 
@@ -94,7 +89,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .chips {
@@ -106,35 +101,35 @@
 
 .chip {
   padding: 7px 14px;
-  background: var(--color-bg-surface);
-  border-radius: var(--radius-full);
+  background: #f4f4f6;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.75);
   white-space: nowrap;
 }
 
 .idChip {
   padding: 7px 14px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-full);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #000000;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-out);
+  transition: border-color 0.2s ease;
 }
 
 .idChip:hover {
-  border-color: var(--color-border-strong);
+  border-color: rgba(0, 0, 0, 0.4);
 }
 
 .dev {
   font-size: 12px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 /* ---------- layout columns ---------- */
@@ -157,9 +152,9 @@
 .chartCard,
 .streamCard {
   padding: 24px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
 }
 
 .chartHeader {
@@ -174,21 +169,21 @@
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 .chartSub {
   margin: 6px 0 0;
   font-size: 11px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
   font-variant-numeric: tabular-nums;
 }
 
 .chartSub em {
   font-style: normal;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 .timeframes {
@@ -198,19 +193,19 @@
 
 .timeframe {
   padding: 7px 12px;
-  background: var(--color-bg-surface-raised);
+  background: #f4f4f6;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 9999px;
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.75);
   cursor: pointer;
   letter-spacing: 0.04em;
 }
 
 .timeframeActive {
-  background: var(--color-bg-surface-hover);
-  color: var(--color-text-primary);
+  background: #000000;
+  color: #ffffff;
 }
 
 .chart {
@@ -224,7 +219,7 @@
   margin: 16px 0 0;
   font-size: 11px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 /* ---------- stats grid ---------- */
@@ -232,7 +227,7 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  border-top: 1px solid var(--color-border-default);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .statTile {
@@ -240,12 +235,12 @@
   flex-direction: column;
   gap: 6px;
   padding: 20px 16px 20px 0;
-  border-bottom: 1px solid var(--color-border-default);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .statTile:nth-child(even) {
   padding-left: 20px;
-  border-left: 1px solid var(--color-border-default);
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .statValue {
@@ -253,14 +248,14 @@
   font-weight: 300;
   letter-spacing: -0.02em;
   line-height: 1;
-  color: var(--color-text-primary);
+  color: #000000;
   font-variant-numeric: tabular-nums;
 }
 
 .statLabel {
   font-size: 11px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 /* ---------- proof stream ---------- */
@@ -272,11 +267,11 @@
 }
 
 .proofRow {
-  border-top: 1px solid var(--color-border-default);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .proofRowOpen {
-  background: var(--color-bg-surface-raised);
+  background: #fafafa;
 }
 
 .proofButton {
@@ -295,7 +290,7 @@
 .proofId {
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-tertiary);
+  color: rgba(0, 0, 0, 0.45);
   font-variant-numeric: tabular-nums;
 }
 
@@ -304,41 +299,40 @@
   min-width: 200px;
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 .proofTimes {
   font-size: 12px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .proofArrow {
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
-/* Win/loss outcome pills — money semantics: green for wins, red for losses. */
 .outcomeWin {
   padding: 5px 10px;
-  background: var(--color-money-positive-soft);
-  border-radius: var(--radius-full);
+  background: #000000;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-money-positive);
+  color: #ffffff;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .outcomeLoss {
   padding: 5px 10px;
-  background: var(--color-money-negative-soft);
-  border: 1px solid transparent;
-  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-money-negative);
+  color: rgba(0, 0, 0, 0.6);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -346,8 +340,8 @@
 .chevron,
 .chevronOpen {
   font-size: 12px;
-  color: var(--color-text-tertiary);
-  transition: transform var(--duration-base) var(--ease-out);
+  color: rgba(0, 0, 0, 0.45);
+  transition: transform 0.3s ease;
 }
 
 .chevronOpen {
@@ -362,7 +356,7 @@
   padding: 0 8px 14px;
   font-size: 11px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
   font-variant-numeric: tabular-nums;
 }
 
@@ -371,7 +365,7 @@
   margin-top: 16px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #000000;
   text-decoration: none;
 }
 
@@ -387,15 +381,15 @@
   align-items: center;
   gap: 16px;
   padding: 80px 24px;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-xl);
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
 }
 
 .emptyDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-text-tertiary);
+  background: #000000;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -403,13 +397,13 @@
   margin: 0;
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .emptyLink {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #000000;
   text-decoration: none;
 }
 
@@ -424,9 +418,8 @@
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
+  background: #f4f4f6;
+  border-radius: 20px;
 }
 
 .railPrice {
@@ -434,14 +427,14 @@
   font-size: 1.9rem;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: var(--color-text-primary);
+  color: #000000;
   font-variant-numeric: tabular-nums;
 }
 
 .railPer {
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .limits {
@@ -459,30 +452,28 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.75);
 }
 
-/* Primary CTA — gold is reserved for this + verification. */
 .hireButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
   padding: 14px 24px;
-  background: var(--color-accent-gold);
+  background: #000000;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 9999px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-on-accent);
+  font-weight: 500;
+  color: #ffffff;
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: opacity 0.2s ease;
 }
 
 .hireButton:hover {
-  background: var(--color-accent-gold-hover);
+  opacity: 0.85;
 }
 
 .hireArrow {
@@ -493,7 +484,7 @@
   margin: 0;
   font-size: 11px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 @keyframes pulse {
@@ -548,11 +539,11 @@
   .statTile:nth-child(3n + 2),
   .statTile:nth-child(3n) {
     padding-left: 20px;
-    border-left: 1px solid var(--color-border-default);
+    border-left: 1px solid rgba(0, 0, 0, 0.12);
   }
 
   .statTile:nth-child(even) {
     padding-left: 20px;
-    border-left: 1px solid var(--color-border-default);
+    border-left: 1px solid rgba(0, 0, 0, 0.12);
   }
 }

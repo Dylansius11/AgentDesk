@@ -536,6 +536,14 @@ Wave 13b fixed `apps/web`'s broken `next build` by stripping `.js` extensions fr
 
 ---
 
+## Wave 13c revert — 2026-08-18 (user rejected the token/style retrofit on sight)
+
+User inspected the running `apps/web` dev server after Wave 13c landed and directly told the PM the styling was broken and to revert it — twice, the second time explicit and unambiguous ("bring back the styles color dont change it revert the change color styles and all about styles"). PM reverted `d49d787` (Wave 13c's full diff: `globals.css` retrofit, `/style` route, and the 5 component `.module.css`/`.tsx` retrofits) via `git revert`, keeping Wave 13c's log entry above as an honest record rather than deleting history. No later commit depended on `d49d787`'s content (Waves 14/15/16 touch unrelated files), so the revert applied cleanly except for this doc's own log, resolved by hand.
+
+**Not independently root-caused before reverting** — the PM's own inspection of the committed CSS (tokens, `:root` scoping, module-file diffs) did not surface an obvious defect, and the one 404 seen on `/` during a live curl check self-resolved on a dev-server restart and was never confirmed related. Reverting on direct, repeated user instruction was the correct call regardless; if the visual issue turns out to be a dev-cache artifact rather than the token change itself, that will need a fresh look before A0.2 is reattempted.
+
+---
+
 ## Backlog / unresolved ownership questions for the user
 
 - No specialist agent cleanly owns generic non-chain, non-proof, non-frontend backend scaffolding (e.g. `apps/api` Hono skeleton, `apps/keeper` skeleton) when it's pure plumbing rather than chain-integration or proof-metrics logic. For Phase A these are stubs only (out of scope until Phase B per BUILD-PLAN), so no action needed yet — flagging so Phase B dispatch doesn't stall on "whose job is this."
