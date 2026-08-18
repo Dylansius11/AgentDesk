@@ -28,7 +28,7 @@ const SCRIPT: FeedEvent[] = [
   {
     time: '14:02:47',
     text: 'Bought 12 CAKE @ $2.08',
-    proof: 'REC-4821',
+    proof: '#4821',
     note: 'pre-registered 14:02:11 ✓',
     link: 'tx ↗',
     pnl: 0,
@@ -37,7 +37,7 @@ const SCRIPT: FeedEvent[] = [
   {
     time: '14:07:12',
     text: 'Grid level hit — sold 12 CAKE @ $2.21 (+$1.20)',
-    proof: 'REC-4822',
+    proof: '#4822',
     note: 'pre-registered 14:02:36 ✓',
     link: 'tx ↗',
     pnl: 1.2,
@@ -46,7 +46,7 @@ const SCRIPT: FeedEvent[] = [
   {
     time: '14:31:05',
     text: 'Volatility spike — widened grid band',
-    proof: 'REC-4823',
+    proof: '#4823',
     note: 'pre-registered 14:28:50 ✓',
     link: 'tx ↗',
     pnl: 0,
@@ -54,8 +54,8 @@ const SCRIPT: FeedEvent[] = [
   },
   {
     time: '15:00:00',
-    text: 'Proof sealed: REC-4822 resolved +$1.20 ✓',
-    proof: 'REC-4822',
+    text: 'Proof sealed: #4822 resolved +$1.20 ✓',
+    proof: '#4822',
     note: 'attested on-chain',
     link: 'evidence ↗',
     pnl: 0,
@@ -64,7 +64,7 @@ const SCRIPT: FeedEvent[] = [
   {
     time: '15:12:39',
     text: 'Bought 12 CAKE @ $2.06',
-    proof: 'REC-4824',
+    proof: '#4824',
     note: 'pre-registered 15:11:58 ✓',
     link: 'tx ↗',
     pnl: 0,
@@ -73,7 +73,7 @@ const SCRIPT: FeedEvent[] = [
   {
     time: '15:19:04',
     text: 'Grid level hit — sold 12 CAKE @ $2.19 (+$1.56)',
-    proof: 'REC-4825',
+    proof: '#4825',
     note: 'pre-registered 15:18:02 ✓',
     link: 'tx ↗',
     pnl: 1.56,
@@ -196,9 +196,7 @@ export default function DashboardPage() {
               <span className={styles.statLabel}>under management</span>
             </div>
             <div className={styles.stat}>
-              <span
-                className={`${styles.statValue} ${styles.statValuePositive} ${flash ? styles.statFlash : ''}`}
-              >
+              <span className={`${styles.statValue} ${flash ? styles.statFlash : ''}`}>
                 +${pnl.toFixed(2)}
               </span>
               <span className={styles.statLabel}>P&L since hire</span>
@@ -265,9 +263,7 @@ export default function DashboardPage() {
                 </div>
                 <div className={styles.sideBlock}>
                   <span className={styles.sideLabel}>P&L since hire</span>
-                  <span
-                    className={`${styles.pnlCounter} ${styles.statValuePositive} ${flash ? styles.statFlash : ''}`}
-                  >
+                  <span className={`${styles.pnlCounter} ${flash ? styles.statFlash : ''}`}>
                     +${pnl.toFixed(2)}
                   </span>
                 </div>

@@ -19,14 +19,14 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .eyebrowDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-text-tertiary);
+  background: #000000;
   flex-shrink: 0;
 }
 
@@ -36,7 +36,7 @@
   font-weight: 300;
   letter-spacing: -0.03em;
   line-height: 1.05;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 @media (min-width: 768px) {

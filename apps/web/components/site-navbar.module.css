@@ -26,12 +26,12 @@
 .navbarFloating {
   margin: 12px 16px 0;
   padding: 8px;
-  background: var(--color-bg-overlay);
+  background: rgba(255, 255, 255, 0.72);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
-  border-color: var(--color-border-default);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-1);
+  border-color: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
 }
 
 .navLeft {
@@ -52,7 +52,7 @@
   align-items: center;
   gap: 8px;
   margin-right: 4px;
-  color: var(--color-text-primary);
+  color: #000000;
   text-decoration: none;
 }
 
@@ -69,7 +69,7 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-text-primary);
+  color: #000000;
 }
 
 .navLinks {
@@ -82,7 +82,7 @@
 .navLink {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 6px;
@@ -90,8 +90,8 @@
 }
 
 .navLink:hover {
-  color: var(--color-accent-gold);
-  background: var(--color-accent-gold-soft);
+  color: #f0b90b;
+  background: rgba(240, 185, 11, 0.08);
 }
 
 .systemsButton {
@@ -99,7 +99,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 14px 4px 4px;
-  background: var(--color-bg-surface-raised);
+  background: #f4f4f6;
   border: none;
   border-radius: 9999px;
   cursor: pointer;
@@ -112,8 +112,8 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--color-text-primary);
-  color: var(--color-text-inverse);
+  background: #000000;
+  color: #ffffff;
   flex-shrink: 0;
 }
 
@@ -126,7 +126,7 @@
   display: none;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: #000000;
   white-space: nowrap;
 }
 
