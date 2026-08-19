@@ -1,10 +1,10 @@
 'use client'
 
-import type { Agent } from '@agentdesk/sdk'
+import { ERC8183_ADDRESSES, erc20Abi, type Agent } from '@agentdesk/sdk'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useAccount, useBalance, useDisconnect, useReadContract } from 'wagmi'
 import SiteNavbar from '@/components/site-navbar'
 import { ConnectWalletButton, shortenAddress } from '@/components/wallet/connect-wallet-button'
 import { client } from '@/lib/agentdesk-client'
@@ -24,6 +24,13 @@ function expiryLabel(duration: Duration): string {
   const days = duration === '24h' ? 1 : duration === '3d' ? 3 : 7
   const date = new Date(Date.now() + days * 86_400_000)
   return `until ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, 18:00`
+}
+
+function formatToken(value: bigint | undefined, decimals = 18): string {
+  if (value === undefined) return '0'
+  const scaled = Number(value) / 10 ** decimals
+  if (scaled > 0 && scaled < 0.0001) return '<0.0001'
+  return scaled.toLocaleString('en-US', { maximumFractionDigits: 4 })
 }
 
 /* decorative confetti particles, computed once with stable ids */
@@ -73,6 +80,14 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const reduceMotion = useReducedMotion()
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
+  const usdBalance = useReadContract({
+    address: ERC8183_ADDRESSES.usdToken,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: isConnected },
+  })
+  const gasBalance = useBalance({ address, query: { enabled: isConnected } })
   // Real fixtures grant exactly one allowlist entry per agent — its plain-English
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
@@ -323,6 +338,10 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                     <span className={styles.connectedRow}>
                       <span className={styles.authLabelDone}>
                         Wallet connected - {shortenAddress(address)}
+                      </span>
+                      <span className={styles.balanceText}>
+                        {formatToken(usdBalance.data as bigint | undefined, 18)} $U ·{' '}
+                        {formatToken(gasBalance.data?.value, gasBalance.data?.decimals)} tBNB
                       </span>
                       <button
                         className={styles.disconnectButton}

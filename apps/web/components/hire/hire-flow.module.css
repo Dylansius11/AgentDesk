@@ -451,6 +451,13 @@
   background: rgba(0, 0, 0, 0.06);
   color: #000000;
 }
+.balanceText {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
 .summaryCard {
   display: flex;
   flex-direction: column;
