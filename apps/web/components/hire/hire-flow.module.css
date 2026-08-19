@@ -427,7 +427,30 @@
   cursor: default;
 }
 
+.connectedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
 
+.disconnectButton {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: transparent;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.disconnectButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000000;
+}
 .summaryCard {
   display: flex;
   flex-direction: column;

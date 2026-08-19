@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import styles from "./site-navbar.module.css";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -54,6 +55,7 @@ export default function SiteNavbar() {
         </a>
       </nav>
       <div className={styles.navRight}>
+        <ConnectWalletButton className={styles.walletButton} />
         <button className={styles.systemsButton} type="button">
           <span className={styles.systemsCircle}>
             <svg viewBox="0 0 12 12" aria-hidden="true">

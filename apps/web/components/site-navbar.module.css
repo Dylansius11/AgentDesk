@@ -113,6 +113,30 @@
   border-radius: 9999px;
   cursor: pointer;
 }
+.walletButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 16px;
+  background: #000000;
+  border: none;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.walletButton:hover {
+  opacity: 0.85;
+}
+
+.walletButton:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 
 .systemsCircle {
   display: inline-flex;

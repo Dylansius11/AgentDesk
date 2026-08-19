@@ -4,7 +4,7 @@ import type { Agent } from '@agentdesk/sdk'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useDisconnect } from 'wagmi'
 import SiteNavbar from '@/components/site-navbar'
 import { ConnectWalletButton, shortenAddress } from '@/components/wallet/connect-wallet-button'
 import { client } from '@/lib/agentdesk-client'
@@ -72,6 +72,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const [toast, setToast] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
   const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
   // Real fixtures grant exactly one allowlist entry per agent — its plain-English
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
@@ -87,14 +88,22 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const risk = !allowPrimary || cap <= 25 ? 'Low' : cap >= 200 ? 'High' : 'Medium'
 
 
-  // step 2: the two simulated rows (grant + fund) auto-complete with a stagger;
-  // the "Connect wallet" row is a real EIP-1193 connect, not a timer.
+  // Step 2 is strictly sequential: connect wallet FIRST, then the two
+  // simulated on-chain rows (grant + fund) auto-complete with a stagger.
+  // The grant/fund timers only start once the wallet is actually connected.
   useEffect(() => {
     if (step !== 2) return
     setAuthDone(0)
+  }, [step])
+
+  useEffect(() => {
+    if (step !== 2 || !isConnected) {
+      setAuthDone(0)
+      return
+    }
     const timers = [0, 1].map((i) => setTimeout(() => setAuthDone(i + 1), (i + 1) * 1000))
     return () => timers.forEach(clearTimeout)
-  }, [step])
+  }, [step, isConnected])
   const showToast = (message: string) => {
     setToast(message)
     setTimeout(() => setToast(null), 3200)
@@ -311,8 +320,17 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                     {isConnected ? '✓' : 1}
                   </span>
                   {isConnected && address ? (
-                    <span className={styles.authLabelDone}>
-                      Wallet connected - {shortenAddress(address)}
+                    <span className={styles.connectedRow}>
+                      <span className={styles.authLabelDone}>
+                        Wallet connected - {shortenAddress(address)}
+                      </span>
+                      <button
+                        className={styles.disconnectButton}
+                        onClick={() => disconnect()}
+                        type="button"
+                      >
+                        Disconnect
+                      </button>
                     </span>
                   ) : (
                     <ConnectWalletButton className={styles.authConnect} />
@@ -321,10 +339,18 @@ export default function HireFlow({ agent }: { agent: Agent }) {
 
                 {authRows.map((label, i) => (
                   <div className={styles.authRow} key={label}>
-                    <span className={authDone > i ? styles.authCheckDone : styles.authCheck}>
-                      {authDone > i ? '✓' : i + 2}
+                    <span
+                      className={
+                        isConnected && authDone > i ? styles.authCheckDone : styles.authCheck
+                      }
+                    >
+                      {isConnected && authDone > i ? '✓' : i + 2}
                     </span>
-                    <span className={authDone > i ? styles.authLabelDone : styles.authLabel}>
+                    <span
+                      className={
+                        isConnected && authDone > i ? styles.authLabelDone : styles.authLabel
+                      }
+                    >
                       {label}
                     </span>
                   </div>
