@@ -17,6 +17,9 @@ build/
 wallets/*.json
 keys/
 
+# Agent Studio local encrypted wallets and generated secrets
+agents/*/.studio/
+
 # Foundry
 cache/
 out/
