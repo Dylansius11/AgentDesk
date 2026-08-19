@@ -1,13 +1,19 @@
 'use client'
 
 import type { Agent } from '@agentdesk/sdk'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
-import { CATEGORY_LABELS, proofRowView, statTiles } from '@/lib/agent-view'
+import {
+  CATEGORY_LABELS,
+  proofRowView,
+  type ProofRowView,
+  shortAddress,
+  statTiles,
+} from '@/lib/agent-view'
 import styles from './agent-profile-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -20,6 +26,7 @@ const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
  * used to be a 3-way timeframe toggle so the JSX below stays unchanged.
  */
 function EquityChart({ agent }: { agent: Agent }) {
+  const reduceMotion = useReducedMotion()
   const series = useMemo(
     () =>
       agent.equityCurve.length > 0
@@ -77,9 +84,9 @@ function EquityChart({ agent }: { agent: Agent }) {
         <motion.path
           d={area}
           fill="rgba(0, 0, 0, 0.05)"
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1, ease: EASE }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1, ease: EASE }}
         />
         <motion.path
           d={line}
@@ -89,9 +96,9 @@ function EquityChart({ agent }: { agent: Agent }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
-          initial={{ pathLength: 0 }}
+          initial={reduceMotion ? false : { pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 1.4, ease: EASE }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.4, ease: EASE }}
         />
       </svg>
 
@@ -102,13 +109,16 @@ function EquityChart({ agent }: { agent: Agent }) {
 
 function ProofRow({
   record,
+  chainId,
   open,
   onToggle,
 }: {
-  record: ReturnType<typeof proofRowView>
+  record: ProofRowView
+  chainId: Agent['chainId']
   open: boolean
   onToggle: () => void
 }) {
+  const reduceMotion = useReducedMotion()
   const positive = (record.outcomeUsd1 ?? 0) >= 0
   return (
     <div className={open ? `${styles.proofRow} ${styles.proofRowOpen}` : styles.proofRow}>
@@ -133,13 +143,31 @@ function ProofRow({
         <motion.div
           animate={{ height: 'auto', opacity: 1 }}
           className={styles.proofDetail}
-          initial={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.4, ease: EASE }}
+          initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }}
         >
           <span>intentHash {record.intentHash}</span>
           <span>deadline {new Date(record.deadlineIso).toLocaleString('en-US')}</span>
           {record.attestedBlock !== null && (
             <span>attested block {record.attestedBlock.toLocaleString('en-US')}</span>
+          )}
+          <a
+            className={styles.proofLink}
+            href={`${chainId === 97 ? 'https://testnet.bscscan.com' : 'https://bscscan.com'}/tx/${record.registeredTx}`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            registration tx ↗
+          </a>
+          {record.attestedTx && (
+            <a
+              className={styles.proofLink}
+              href={`${chainId === 97 ? 'https://testnet.bscscan.com' : 'https://bscscan.com'}/tx/${record.attestedTx}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              attestation tx ↗
+            </a>
           )}
         </motion.div>
       )}
@@ -193,13 +221,53 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                 <button className={styles.idChip} onClick={copyId} type="button">
                   ERC-8004 #{agent.id} · {copied ? 'Copied' : 'Copy'}
                 </button>
-                <span className={styles.dev}>by @cryptoforge ✓</span>
+                <span className={styles.dev}>
+                  by {shortAddress(agent.claimedBy ?? agent.ownerAddress)}
+                </span>
               </div>
             </div>
           </header>
 
           <div className={styles.columns}>
             <div className={styles.main}>
+              <section className={styles.detailsCard} aria-label="Agent listing details">
+                <p className={styles.description}>{agent.description}</p>
+                <dl className={styles.detailsGrid}>
+                  <div className={styles.detail}>
+                    <dt>Owner</dt>
+                    <dd title={agent.ownerAddress}>{shortAddress(agent.ownerAddress)}</dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Network</dt>
+                    <dd>{agent.chainId === 97 ? 'BSC Testnet' : 'BSC Mainnet'}</dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Registered</dt>
+                    <dd>{new Date(agent.registeredAt).toLocaleDateString('en-US')}</dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Listing</dt>
+                    <dd>{agent.status}</dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Proof Program</dt>
+                    <dd>{agent.proofProgram ? 'Opted in' : 'Not enrolled'}</dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Claimed</dt>
+                    <dd>
+                      {agent.claimedBy && agent.claimedAt
+                        ? `${shortAddress(agent.claimedBy)} · ${new Date(agent.claimedAt).toLocaleDateString('en-US')}`
+                        : 'Unclaimed'}
+                    </dd>
+                  </div>
+                  <div className={styles.detail}>
+                    <dt>Capabilities</dt>
+                    <dd>{agent.capabilities.join(', ') || 'None declared'}</dd>
+                  </div>
+                </dl>
+              </section>
+
               {agent.verified ? (
                 <>
                   <EquityChart agent={agent} />
@@ -221,6 +289,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                     <div className={styles.stream}>
                       {records.map((record) => (
                         <ProofRow
+                          chainId={agent.chainId}
                           key={record.recordId}
                           onToggle={() =>
                             setExpanded((current) =>
@@ -252,6 +321,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
 
             <aside className={styles.rail}>
               <div className={styles.railCard}>
+                <p className={styles.trustSummary}>{agent.trustPanel.summary}</p>
                 <p className={styles.railPrice}>
                   from ${agent.pricePerTaskUsd1.toFixed(2)}
                   <span className={styles.railPer}> / completed task</span>

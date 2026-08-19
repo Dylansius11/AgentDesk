@@ -181,6 +181,26 @@
   justify-content: space-between;
   gap: 12px;
 }
+.identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 
 .name {
   margin: 0;

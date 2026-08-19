@@ -1,7 +1,7 @@
 'use client'
 
 import type { Agent } from '@agentdesk/sdk'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import SiteNavbar from '@/components/site-navbar'
@@ -10,20 +10,18 @@ import styles from './hire-flow.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
-type Duration = '24h' | '3d' | '7d' | 'until'
+type Duration = '24h' | '3d' | '7d'
 
 const DURATIONS: { id: Duration; label: string }[] = [
   { id: '24h', label: '24 hours' },
   { id: '3d', label: '3 days' },
   { id: '7d', label: '7 days' },
-  { id: 'until', label: 'Until I stop' },
 ]
 
 /** Demo hirer wallet — this prototype has no wallet connect yet (Phase B), so every hire is confirmed from this fixed, obviously-fake address. */
 const DEMO_HIRER_ADDRESS = '0xf00df00df00df00df00df00df00df00df00df00d'
 
 function expiryLabel(duration: Duration): string {
-  if (duration === 'until') return 'until you stop it'
   const days = duration === '24h' ? 1 : duration === '3d' ? 3 : 7
   const date = new Date(Date.now() + days * 86_400_000)
   return `until ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, 18:00`
@@ -40,6 +38,8 @@ const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
 }))
 
 function Confetti() {
+  const reduceMotion = useReducedMotion()
+  if (reduceMotion) return null
   return (
     <div aria-hidden="true" className={styles.confetti}>
       {PARTICLES.map((particle) => (
@@ -71,17 +71,19 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const [submitting, setSubmitting] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const reduceMotion = useReducedMotion()
 
   // Real fixtures grant exactly one allowlist entry per agent — its plain-English
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
   const action = primaryEntry?.label ?? 'act on your behalf'
+  const actionSentence = action.replace(/\s+— nothing else$/, '').replace(/^./, (c) => c.toLowerCase())
   const escrow = agent.pricePerTaskUsd1 * 3 * 1.03
 
   const sentence = useMemo(() => {
-    const verbText = allowPrimary ? action : 'watch your balance only'
-    return `${agent.name} may ${verbText} with at most $${cap} per day, ${expiryLabel(duration)}. It cannot withdraw. You can stop it anytime.`
-  }, [action, allowPrimary, agent.name, cap, duration])
+    if (!allowPrimary) return 'Select the action permission to continue.'
+    return `${agent.name} may ${actionSentence} with at most $${cap} per day, ${expiryLabel(duration)}. It cannot withdraw. You can stop it anytime.`
+  }, [actionSentence, allowPrimary, agent.name, cap, duration])
 
   const risk = !allowPrimary || cap <= 25 ? 'Low' : cap >= 200 ? 'High' : 'Medium'
 
@@ -105,6 +107,10 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   ]
 
   const confirmHire = async () => {
+    if (!allowPrimary || !primaryEntry) {
+      showToast('Select the action permission before continuing.')
+      return
+    }
     setSubmitting(true)
     try {
       const session = await client.hire({
@@ -112,14 +118,10 @@ export default function HireFlow({ agent }: { agent: Agent }) {
         hirerAddress: DEMO_HIRER_ADDRESS,
         config: {
           amountUsd1: amount,
-          // The allowlist can never be empty — every ERC-8183 session grants
-          // at least one scoped capability (HireConfigSchema.allowlist.min(1)).
-          // Flipping the toggle off changes the plain-English sentence above
-          // but this demo's fixtures only model one real capability per agent.
-          spendCapUsd1: allowPrimary ? cap : 0,
+          spendCapUsd1: cap,
           spendCapWindow: 'day',
-          durationDays: duration === '24h' ? 1 : duration === '3d' ? 3 : duration === '7d' ? 7 : 365,
-          allowlist: primaryEntry ? [primaryEntry] : [],
+          durationDays: duration === '24h' ? 1 : duration === '3d' ? 3 : 7,
+          allowlist: [primaryEntry],
         },
       })
       setJobId(session.id)
@@ -143,7 +145,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
               animate={{ scaleX: success ? 1 : step / 3 }}
               className={styles.progressFill}
               initial={false}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: EASE }}
             />
           </div>
           <div className={styles.stepLabels}>
@@ -184,9 +186,14 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                 </p>
               </div>
 
-              <Link className={styles.blackPill} href="/dashboard">
-                Go to dashboard →
-              </Link>
+              {jobId && (
+                <Link
+                  className={styles.blackPill}
+                  href={`/dashboard?jobId=${encodeURIComponent(jobId)}&agentId=${encodeURIComponent(agent.id)}`}
+                >
+                  Go to dashboard →
+                </Link>
+              )}
             </div>
           ) : step === 1 ? (
             <div className={styles.stepBody}>
@@ -251,7 +258,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                   type="button"
                 >
                   <span className={styles.allowText}>
-                    {action[0].toUpperCase() + action.slice(1)} — nothing else
+                    {action.charAt(0).toUpperCase() + action.slice(1)}
                   </span>
                   <span className={styles.toggleTrack}>
                     <span className={`${styles.toggleKnob} ${allowPrimary ? styles.knobOn : ''}`} />
@@ -275,7 +282,12 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                 <Link className={styles.ghostButton} href={`/agent/${agent.id}`}>
                   Cancel
                 </Link>
-                <button className={styles.blackPill} onClick={() => setStep(2)} type="button">
+                <button
+                  className={styles.blackPill}
+                  disabled={!allowPrimary}
+                  onClick={() => setStep(2)}
+                  type="button"
+                >
                   Continue →
                 </button>
               </div>

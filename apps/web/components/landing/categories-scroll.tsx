@@ -2,29 +2,34 @@
 
 import { type MotionValue, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
+import Link from 'next/link'
 import styles from './categories-scroll.module.css'
 import shared from './landing-section.module.css'
 
 const CATEGORIES = [
   {
+    id: 'grid',
     title: 'Grid Trading',
     tagline: 'Buys the dip, sells the rip — automatically.',
     chip: 'PancakeSwap',
     spark: [3, 4, 3.5, 5, 4.5, 6, 5.5, 7, 6.5, 8],
   },
   {
+    id: 'rebalance',
     title: 'Rebalancing',
     tagline: 'Keeps your liquidity in the profitable range.',
     chip: 'LP positions',
     spark: [2, 3, 3, 4, 4.2, 5, 5.1, 6, 6.2, 7],
   },
   {
+    id: 'yield',
     title: 'Yield',
     tagline: 'Moves funds to where APY actually is.',
     chip: 'Farms',
     spark: [4, 3.2, 5, 4.6, 6, 5.6, 7, 6.8, 8, 9],
   },
   {
+    id: 'health',
     title: 'Health Guard',
     tagline: 'Stops your loan from getting liquidated at 3am.',
     chip: 'Venus',
@@ -129,9 +134,14 @@ function CardLayer({
 
   const range = isLast ? [start, start + fade] : [start, start + fade, end - fade, end]
   const opacity = useTransform(progress, range, isLast ? [0, 1] : [0, 1, 1, 0])
+  const pointerEvents = useTransform(
+    progress,
+    range,
+    isLast ? ['none', 'auto'] : ['none', 'auto', 'auto', 'none'],
+  )
 
   return (
-    <motion.div className={styles.card} style={{ opacity }}>
+    <motion.div className={styles.card} style={{ opacity, pointerEvents }}>
       {children}
     </motion.div>
   )
@@ -182,9 +192,9 @@ export default function CategoriesScroll() {
                   <Sparkline values={category.spark} />
                   <div className={styles.cardBottom}>
                     <span className={styles.cardHint}>Verified example</span>
-                    <span className={styles.explore}>
+                    <Link className={styles.explore} href={`/marketplace?category=${category.id}`}>
                       Explore <span className={styles.arrow}>→</span>
-                    </span>
+                    </Link>
                   </div>
                 </CardLayer>
               ))}

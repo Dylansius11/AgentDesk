@@ -1,7 +1,7 @@
 'use client'
 
 import type { Agent, Category } from '@agentdesk/sdk'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
@@ -14,6 +14,8 @@ import s from './leaderboard-page.module.css'
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type CategoryFilter = 'all' | Category
+type WindowFilter = '7d' | '30d' | 'all'
+type SortId = 'return' | 'winRate' | 'drawdown' | 'tasks'
 
 const CAT_TABS: { id: CategoryFilter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -22,11 +24,26 @@ const CAT_TABS: { id: CategoryFilter; label: string }[] = [
   { id: 'yield', label: CATEGORY_LABELS.yield },
   { id: 'health', label: CATEGORY_LABELS.health },
 ]
+const WINDOWS: { id: WindowFilter; label: string }[] = [
+  { id: '7d', label: '7 days' },
+  { id: '30d', label: '30 days' },
+  { id: 'all', label: 'All time' },
+]
+
+const SORTS: { id: SortId; label: string }[] = [
+  { id: 'return', label: 'Return' },
+  { id: 'winRate', label: 'Win rate' },
+  { id: 'drawdown', label: 'Lowest drawdown' },
+  { id: 'tasks', label: 'Tasks proven' },
+]
 
 export default function LeaderboardPage() {
   const [allAgents, setAllAgents] = useState<Agent[] | null>(null)
   const [category, setCategory] = useState<CategoryFilter>('all')
   const [minTasks, setMinTasks] = useState(false)
+  const [window, setWindow] = useState<WindowFilter>('30d')
+  const [sort, setSort] = useState<SortId>('return')
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     let cancelled = false
@@ -41,20 +58,32 @@ export default function LeaderboardPage() {
   const rows = useMemo(() => {
     if (!allAgents) return []
     const filtered = allAgents
+      .filter((agent) => agent.verified && agent.metrics !== null)
       .filter((agent) => category === 'all' || agent.category === category)
+      .filter((agent) => window === 'all' || agent.metrics?.window === window)
       .filter((agent) => (!minTasks ? true : (agent.metrics?.tasksResolved ?? 0) >= 50))
 
     return [...filtered].sort((a, b) => {
-      if (a.verified !== b.verified) return a.verified ? -1 : 1
-      return (b.metrics?.verifiedReturnPct ?? 0) - (a.metrics?.verifiedReturnPct ?? 0)
+      switch (sort) {
+        case 'winRate':
+          return (b.metrics?.winRate ?? 0) - (a.metrics?.winRate ?? 0)
+        case 'drawdown':
+          return (a.metrics?.maxDrawdownPct ?? Infinity) - (b.metrics?.maxDrawdownPct ?? Infinity)
+        case 'tasks':
+          return (b.metrics?.tasksResolved ?? 0) - (a.metrics?.tasksResolved ?? 0)
+        default:
+          return (b.metrics?.verifiedReturnPct ?? 0) - (a.metrics?.verifiedReturnPct ?? 0)
+      }
     })
-  }, [allAgents, category, minTasks])
+  }, [allAgents, category, minTasks, sort, window])
 
   const catStatHeader = category === 'all' ? 'Specialty' : CATEGORY_STAT_LABEL[category]
 
   const resetFilters = () => {
     setCategory('all')
     setMinTasks(false)
+    setWindow('30d')
+    setSort('return')
   }
 
   return (
@@ -74,7 +103,7 @@ export default function LeaderboardPage() {
             <span className={s.bannerIcon}>◆</span>
             <span>
               Every number on this page is computed from on-chain records.{' '}
-              <Link href="#" className={s.bannerLink}>
+              <Link href="/verify/4001" className={s.bannerLink}>
                 Audit any row →
               </Link>
             </span>
@@ -96,6 +125,31 @@ export default function LeaderboardPage() {
               ))}
             </div>
             <div className={s.controlsRight}>
+              <select
+                aria-label="Leaderboard window"
+                className={s.select}
+                onChange={(event) => setWindow(event.target.value as WindowFilter)}
+                value={window}
+              >
+                {WINDOWS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Sort leaderboard"
+                className={s.select}
+                onChange={(event) => setSort(event.target.value as SortId)}
+                value={sort}
+              >
+                {SORTS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    Sort: {option.label}
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="button"
                 role="switch"
@@ -116,13 +170,16 @@ export default function LeaderboardPage() {
               <p className={s.emptyText}>Loading leaderboard…</p>
             </div>
           ) : rows.length > 0 ? (
-            <div className={s.tableWrap} key={`${category}-${minTasks}`}>
+            <div
+              className={s.tableWrap}
+              key={`${category}-${window}-${sort}-${minTasks}`}
+            >
               <table className={s.table}>
                 <thead>
                   <tr>
                     <th className={s.thRank}>Rank</th>
                     <th className={s.thAgent}>Agent</th>
-                    <th className={s.thNum}>Return (30d)</th>
+                    <th className={s.thNum}>Return ({window})</th>
                     <th className={s.thNum}>Win rate</th>
                     <th className={s.thNum}>Max DD</th>
                     <th className={s.thNum}>Tasks</th>
@@ -135,13 +192,17 @@ export default function LeaderboardPage() {
                     <motion.tr
                       key={agent.id}
                       className={`${s.row} ${i === 0 ? s.rowFirst : ''}`}
-                      initial={{ y: 12, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{
-                        duration: 0.5,
-                        ease: EASE,
-                        delay: Math.min(i * 0.04, 0.4),
-                      }}
+                      initial={reduceMotion ? false : { y: 12, opacity: 0 }}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : {
+                              duration: 0.5,
+                              ease: EASE,
+                              delay: Math.min(i * 0.04, 0.4),
+                            }
+                      }
                     >
                       <td className={s.tdRank}>
                         {agent.verified ? (

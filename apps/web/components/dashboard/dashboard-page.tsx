@@ -1,7 +1,7 @@
 'use client'
 
-import type { Agent } from '@agentdesk/sdk'
-import { AnimatePresence, motion } from 'motion/react'
+import type { Agent, DashboardEvent } from '@agentdesk/sdk'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
@@ -18,146 +18,150 @@ interface FeedEvent {
   text: string
   proof: string
   note: string
-  link: string
-  pnl: number
+  label: string
+  href: string
   spend: number
 }
 
-/* the scripted demo sequence from the product docs, loops while active */
-const SCRIPT: FeedEvent[] = [
-  {
-    time: '14:02:47',
-    text: 'Bought 12 CAKE @ $2.08',
-    proof: '#4821',
-    note: 'pre-registered 14:02:11 ✓',
-    link: 'tx ↗',
-    pnl: 0,
-    spend: 0.8,
-  },
-  {
-    time: '14:07:12',
-    text: 'Grid level hit — sold 12 CAKE @ $2.21 (+$1.20)',
-    proof: '#4822',
-    note: 'pre-registered 14:02:36 ✓',
-    link: 'tx ↗',
-    pnl: 1.2,
-    spend: 0.8,
-  },
-  {
-    time: '14:31:05',
-    text: 'Volatility spike — widened grid band',
-    proof: '#4823',
-    note: 'pre-registered 14:28:50 ✓',
-    link: 'tx ↗',
-    pnl: 0,
-    spend: 0.4,
-  },
-  {
-    time: '15:00:00',
-    text: 'Proof sealed: #4822 resolved +$1.20 ✓',
-    proof: '#4822',
-    note: 'attested on-chain',
-    link: 'evidence ↗',
-    pnl: 0,
-    spend: 0,
-  },
-  {
-    time: '15:12:39',
-    text: 'Bought 12 CAKE @ $2.06',
-    proof: '#4824',
-    note: 'pre-registered 15:11:58 ✓',
-    link: 'tx ↗',
-    pnl: 0,
-    spend: 0.8,
-  },
-  {
-    time: '15:19:04',
-    text: 'Grid level hit — sold 12 CAKE @ $2.19 (+$1.56)',
-    proof: '#4825',
-    note: 'pre-registered 15:18:02 ✓',
-    link: 'tx ↗',
-    pnl: 1.56,
-    spend: 0.8,
-  },
-]
-
 const FEED_CAP = 6
 
-export default function DashboardPage() {
-  // "1001" = GridGoblin, the scripted demo session (packages/sdk fixtures/agents/grid.ts)
+function eventTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function explorerTx(chainId: Agent['chainId'], txHash: string): string {
+  const base = chainId === 97 ? 'https://testnet.bscscan.com' : 'https://bscscan.com'
+  return `${base}/tx/${txHash}`
+}
+
+function feedEvent(event: DashboardEvent, chainId: Agent['chainId']): FeedEvent | null {
+  if (event.type === 'decision_registered') {
+    return {
+      time: eventTime(event.at),
+      text: event.record.decision.action.plainText,
+      proof: `#${event.record.recordId}`,
+      note: `pre-registered ${eventTime(event.record.decision.registeredAt)} ✓`,
+      label: 'tx ↗',
+      href: explorerTx(chainId, event.record.decision.registeredTx),
+      spend: event.record.decision.action.sizeUsd1,
+    }
+  }
+  if (event.type === 'outcome_attested' && event.record.outcome) {
+    const outcome = event.record.outcome
+    return {
+      time: eventTime(event.at),
+      text: `Proof sealed: #${event.record.recordId} ${outcome.status} ${outcome.pnlUsd1 >= 0 ? '+' : '−'}$${Math.abs(outcome.pnlUsd1).toFixed(2)}`,
+      proof: `#${event.record.recordId}`,
+      note: outcome.resolutionSource,
+      label: 'evidence ↗',
+      href: explorerTx(chainId, outcome.attestedTx),
+      spend: 0,
+    }
+  }
+  return null
+}
+
+export default function DashboardPage({
+  agentId = '4001',
+  jobId = 'job-nina-healthguard-0001',
+}: {
+  agentId?: string
+  jobId?: string
+}) {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [stopped, setStopped] = useState(false)
+  const [stoppedAt, setStoppedAt] = useState<string | null>(null)
   const [stopArmed, setStopArmed] = useState(false)
   const [feed, setFeed] = useState<(FeedEvent & { key: number })[]>([])
-  const [pnl, setPnl] = useState(3.4)
-  const [spend, setSpend] = useState(12.4)
-  const [spark, setSpark] = useState<number[]>([3, 3.1, 3.2, 3.3, 3.4])
+  const [pnl, setPnl] = useState(0)
+  const [spend, setSpend] = useState(0)
+  const [spark, setSpark] = useState<number[]>([0, 0])
   const [flash, setFlash] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const scriptIndex = useRef(0)
   const eventKey = useRef(0)
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     let cancelled = false
-    client.getAgent('1001').then((result) => {
+    client.getAgent(agentId).then((result) => {
       if (!cancelled) setAgent(result)
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [agentId])
 
-  // the live feed: a scripted event slides in every 5 seconds while active
   useEffect(() => {
-    if (stopped || !agent) return
-    const push = (event: FeedEvent) => {
-      eventKey.current += 1
-      setFeed((current) => [{ ...event, key: eventKey.current }, ...current].slice(0, FEED_CAP))
-      if (event.pnl > 0) {
-        setPnl((value) => value + event.pnl)
-        setFlash(true)
-        setTimeout(() => setFlash(false), 700)
-      }
-      if (event.spend > 0) {
-        setSpend((value) => Math.min(50, value + event.spend))
-      }
-      // extend the session curve from its own last point (no stale state reads)
-      setSpark((current) => {
-        const last = current[current.length - 1] ?? 3.4
-        return [...current, last + event.pnl].slice(-12)
-      })
-    }
-    // seed the first event immediately, then tick every 5s
-    push(SCRIPT[scriptIndex.current % SCRIPT.length])
-    scriptIndex.current += 1
-    const timer = setInterval(() => {
-      push(SCRIPT[scriptIndex.current % SCRIPT.length])
-      scriptIndex.current += 1
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [stopped, agent])
+    if (!agent || stopped) return
+    let active = true
+    const events = client.getDashboard(jobId)
 
-  const armOrStop = () => {
+    const consume = async () => {
+      try {
+        for await (const event of events) {
+          if (!active) return
+          if (event.type === 'pnl_update') {
+            setPnl(event.cumulativePnlUsd1)
+            setSpark((current) => [...current, event.cumulativePnlUsd1].slice(-12))
+            setFlash(true)
+            setTimeout(() => setFlash(false), 700)
+            continue
+          }
+          if (event.type === 'session_revoked') {
+            const time = eventTime(event.revokedAt)
+            setStoppedAt(time)
+            setStopped(true)
+            setToast(`Revoked at ${time}`)
+            setTimeout(() => setToast(null), 3200)
+            return
+          }
+          const row = feedEvent(event, agent.chainId)
+          if (!row) continue
+          eventKey.current += 1
+          setFeed((current) => [{ ...row, key: eventKey.current }, ...current].slice(0, FEED_CAP))
+          if (row.spend > 0) {
+            setSpend((current) =>
+              Math.min(agent.trustPanel.spendCapUsd1, current + row.spend),
+            )
+          }
+        }
+      } catch {
+        if (active) setToast('The demo feed could not be loaded.')
+      }
+    }
+
+    void consume()
+    return () => {
+      active = false
+      void events.return(undefined)
+    }
+  }, [agent, jobId, stopped])
+
+  const armOrStop = async () => {
     if (stopped) return
     if (!stopArmed) {
       setStopArmed(true)
       setTimeout(() => setStopArmed(false), 3000)
       return
     }
-    setStopped(true)
     setStopArmed(false)
-    setToast('Session revoked · effective next block')
-    setTimeout(() => setToast(null), 3200)
-  }
-
-  const restart = () => {
-    scriptIndex.current = 0
-    eventKey.current = 0
-    setFeed([])
-    setPnl(3.4)
-    setSpend(12.4)
-    setSpark([3, 3.1, 3.2, 3.3, 3.4])
-    setStopped(false)
+    try {
+      const session = await client.revoke(jobId)
+      const revokedAt = session.session.revokedAt ?? new Date().toISOString()
+      const time = eventTime(revokedAt)
+      setStoppedAt(time)
+      setStopped(true)
+      setToast(`Revoked at ${time}`)
+      setTimeout(() => setToast(null), 3200)
+    } catch {
+      setToast('Could not stop this session — try again.')
+      setTimeout(() => setToast(null), 3200)
+    }
   }
 
   if (!agent) {
@@ -178,10 +182,11 @@ export default function DashboardPage() {
     )
   }
 
+  const spendCap = agent.trustPanel.spendCapUsd1
+
   return (
     <div className={styles.page}>
       <SiteNavbar />
-
       <main className={shared.section}>
         <div className={shared.container}>
           <p className={shared.eyebrow}>
@@ -197,7 +202,7 @@ export default function DashboardPage() {
             </div>
             <div className={styles.stat}>
               <span className={`${styles.statValue} ${flash ? styles.statFlash : ''}`}>
-                +${pnl.toFixed(2)}
+                {pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}
               </span>
               <span className={styles.statLabel}>P&L since hire</span>
             </div>
@@ -217,9 +222,9 @@ export default function DashboardPage() {
                 </div>
               </div>
               {stopped ? (
-                <span className={styles.stoppedPill}>Stopped at 15:42</span>
+                <span className={styles.stoppedPill}>Stopped at {stoppedAt ?? 'now'}</span>
               ) : (
-                <button className={styles.stopButton} onClick={armOrStop} type="button">
+                <button className={styles.stopButton} onClick={() => void armOrStop()} type="button">
                   {stopArmed ? 'Tap again to stop' : 'STOP'}
                 </button>
               )}
@@ -232,15 +237,24 @@ export default function DashboardPage() {
                     <motion.div
                       animate={{ y: 0, opacity: 1 }}
                       className={styles.feedRow}
-                      initial={{ y: -14, opacity: 0 }}
+                      initial={reduceMotion ? false : { y: -14, opacity: 0 }}
                       key={event.key}
-                      transition={{ duration: 0.25, ease: EASE }}
+                      transition={
+                        reduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE }
+                      }
                     >
                       <span className={styles.feedTime}>{event.time}</span>
                       <span className={styles.feedText}>
                         {event.text} · proof {event.proof} {event.note}
                       </span>
-                      <span className={styles.feedLink}>{event.link}</span>
+                      <a
+                        className={styles.feedLink}
+                        href={event.href}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {event.label}
+                      </a>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -254,21 +268,23 @@ export default function DashboardPage() {
                   <span className={styles.sideLabel}>Spend today</span>
                   <div className={styles.spendTrack}>
                     <motion.div
-                      animate={{ width: `${(spend / 50) * 100}%` }}
+                      animate={{ width: `${spendCap > 0 ? (spend / spendCap) * 100 : 0}%` }}
                       className={styles.spendFill}
-                      transition={{ duration: 0.6, ease: EASE }}
+                      transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: EASE }}
                     />
                   </div>
-                  <span className={styles.spendReadout}>${spend.toFixed(2)} / $50</span>
+                  <span className={styles.spendReadout}>
+                    ${spend.toFixed(2)} / ${spendCap.toFixed(2)}
+                  </span>
                 </div>
                 <div className={styles.sideBlock}>
                   <span className={styles.sideLabel}>P&L since hire</span>
                   <span className={`${styles.pnlCounter} ${flash ? styles.statFlash : ''}`}>
-                    +${pnl.toFixed(2)}
+                    {pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}
                   </span>
                 </div>
                 <div className={styles.sideBlock}>
-                  <span className={styles.sideLabel}>Session</span>
+                  <span className={styles.sideLabel}>Health factor trend</span>
                   <Sparkline className={styles.spark} values={spark} />
                 </div>
               </div>
@@ -280,16 +296,14 @@ export default function DashboardPage() {
               <div>
                 <p className={styles.stoppedHeading}>No agents working for you right now.</p>
                 <p className={styles.stoppedSub}>
-                  {agent.name} ran {(agent.metrics?.tasksResolved ?? 0).toLocaleString('en-US')} proven tasks before you stopped it. Hire it again anytime.
+                  {agent.name} ran {(agent.metrics?.tasksResolved ?? 0).toLocaleString('en-US')}{' '}
+                  proven tasks before you stopped it.
                 </p>
               </div>
               <div className={styles.stoppedActions}>
                 <Link className={styles.blackPill} href="/marketplace">
-                  Hire your first agent →
+                  Hire another agent →
                 </Link>
-                <button className={styles.ghostButton} onClick={restart} type="button">
-                  Restart demo session
-                </button>
               </div>
             </div>
           )}
@@ -298,8 +312,12 @@ export default function DashboardPage() {
 
       {!stopped && (
         <div className={styles.stickyStop}>
-          <button className={styles.stopButtonWide} onClick={armOrStop} type="button">
-            {stopArmed ? 'Tap again to stop — effective next block' : 'STOP'}
+          <button
+            className={styles.stopButtonWide}
+            onClick={() => void armOrStop()}
+            type="button"
+          >
+            {stopArmed ? 'Tap again to stop — effective immediately' : 'STOP'}
           </button>
         </div>
       )}

@@ -1,7 +1,7 @@
 'use client'
 
 import type { Agent, Category } from '@agentdesk/sdk'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import shared from '@/components/landing/landing-section.module.css'
@@ -16,6 +16,8 @@ const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type CategoryFilter = 'all' | Category
 type SortId = 'return' | 'winRate' | 'tasks' | 'respMinutes' | 'newest'
+type RiskFilter = 'all' | Agent['riskLevel']
+type PriceFilter = 'all' | '1' | '5' | '10'
 
 const SORTS: { id: SortId; label: string }[] = [
   { id: 'return', label: 'Verified return' },
@@ -31,6 +33,19 @@ const TABS: { id: CategoryFilter; label: string }[] = [
   { id: 'rebalance', label: CATEGORY_LABELS.rebalance },
   { id: 'yield', label: CATEGORY_LABELS.yield },
   { id: 'health', label: CATEGORY_LABELS.health },
+]
+const RISK_FILTERS: { id: RiskFilter; label: string }[] = [
+  { id: 'all', label: 'Any risk' },
+  { id: 'low', label: 'Low risk' },
+  { id: 'medium', label: 'Medium risk' },
+  { id: 'high', label: 'High risk' },
+]
+
+const PRICE_FILTERS: { id: PriceFilter; label: string }[] = [
+  { id: 'all', label: 'Any price' },
+  { id: '1', label: 'Up to $1/task' },
+  { id: '5', label: 'Up to $5/task' },
+  { id: '10', label: 'Up to $10/task' },
 ]
 
 function AgentCardSkeleton() {
@@ -57,7 +72,12 @@ function AgentCard({ agent }: { agent: Agent }) {
       href={`/agent/${agent.id}`}
     >
       <div className={styles.cardTop}>
-        <h3 className={styles.name}>{agent.name}</h3>
+        <div className={styles.identity}>
+          <span className={styles.avatar} aria-hidden="true">
+            {agent.name.charAt(0)}
+          </span>
+          <h3 className={styles.name}>{agent.name}</h3>
+        </div>
         {agent.verified ? (
           <span className={styles.verifiedPill}>✓ Verified</span>
         ) : (
@@ -78,14 +98,23 @@ function AgentCard({ agent }: { agent: Agent }) {
               className={styles.statMain}
               data-sign={returnPct !== null && returnPct < 0 ? 'negative' : 'positive'}
               data-numeric
+              title="Return derived from attested on-chain outcomes over the last 30 days."
             >
               {returnPct !== null && returnPct >= 0 ? '+' : ''}
               {returnPct?.toFixed(1)}% <span className={styles.statSub}>· 30d</span>
             </span>
-            <span className={styles.stat} data-numeric>
+            <span
+              className={styles.stat}
+              data-numeric
+              title="Share of attested tasks that ended with a positive outcome."
+            >
               {Math.round(metrics.winRate * 100)}% wins
             </span>
-            <span className={styles.stat} data-numeric>
+            <span
+              className={styles.stat}
+              data-numeric
+              title="Number of tasks with an outcome recorded by the Proof Engine."
+            >
               {metrics.tasksResolved.toLocaleString('en-US')} tasks
             </span>
           </div>
@@ -96,12 +125,19 @@ function AgentCard({ agent }: { agent: Agent }) {
         </p>
       )}
 
-      <div className={styles.meta}>
+      <div
+        className={styles.meta}
+        title="Risk reflects the listing's declared operating limits and allowed protocols."
+      >
         Risk: {agent.riskLevel[0]?.toUpperCase()}
         {agent.riskLevel.slice(1)} · Executes on {agent.trustPanel.allowlist[0]?.protocol ?? '—'}
       </div>
       <div className={styles.cardBottom}>
-        <span className={styles.price} data-numeric>
+        <span
+          className={styles.price}
+          data-numeric
+          title="Minimum USD1 price charged for one completed task."
+        >
           from ${agent.pricePerTaskUsd1.toFixed(2)} / task
         </span>
         <span className={styles.hirePill}>
@@ -112,11 +148,18 @@ function AgentCard({ agent }: { agent: Agent }) {
   )
 }
 
-export default function MarketplacePage() {
+export default function MarketplacePage({
+  initialCategory = 'all',
+}: {
+  initialCategory?: CategoryFilter
+}) {
   const [allAgents, setAllAgents] = useState<Agent[] | null>(null)
-  const [category, setCategory] = useState<CategoryFilter>('all')
+  const [category, setCategory] = useState<CategoryFilter>(initialCategory)
   const [verifiedOnly, setVerifiedOnly] = useState(true)
+  const [risk, setRisk] = useState<RiskFilter>('all')
+  const [price, setPrice] = useState<PriceFilter>('all')
   const [sort, setSort] = useState<SortId>('return')
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     let cancelled = false
@@ -132,10 +175,12 @@ export default function MarketplacePage() {
     if (!allAgents) return []
     const list = allAgents.filter(
       (agent) =>
-        (category === 'all' || agent.category === category) && (!verifiedOnly || agent.verified),
+        (category === 'all' || agent.category === category) &&
+        (!verifiedOnly || agent.verified) &&
+        (risk === 'all' || agent.riskLevel === risk) &&
+        (price === 'all' || agent.pricePerTaskUsd1 <= Number(price)),
     )
     return [...list].sort((a, b) => {
-      // verified always rank above unverified
       if (a.verified !== b.verified) return a.verified ? -1 : 1
       switch (sort) {
         case 'winRate':
@@ -150,7 +195,7 @@ export default function MarketplacePage() {
           return (b.metrics?.verifiedReturnPct ?? 0) - (a.metrics?.verifiedReturnPct ?? 0)
       }
     })
-  }, [allAgents, category, verifiedOnly, sort])
+  }, [allAgents, category, verifiedOnly, risk, price, sort])
 
   const verifiedCount = agents.filter((agent) => agent.verified).length
 
@@ -188,6 +233,32 @@ export default function MarketplacePage() {
             </div>
 
             <div className={styles.controlsRight}>
+              <select
+                aria-label="Filter by risk"
+                className={styles.sortSelect}
+                onChange={(event) => setRisk(event.target.value as RiskFilter)}
+                value={risk}
+              >
+                {RISK_FILTERS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Filter by maximum price"
+                className={styles.sortSelect}
+                onChange={(event) => setPrice(event.target.value as PriceFilter)}
+                value={price}
+              >
+                {PRICE_FILTERS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
               <button
                 aria-checked={verifiedOnly}
                 aria-label="Verified only"
@@ -224,13 +295,20 @@ export default function MarketplacePage() {
               ))}
             </div>
           ) : agents.length > 0 ? (
-            <div className={styles.grid} key={`${category}-${verifiedOnly}-${sort}`}>
+            <div
+              className={styles.grid}
+              key={`${category}-${verifiedOnly}-${risk}-${price}-${sort}`}
+            >
               {agents.map((agent, i) => (
                 <motion.div
                   animate={{ y: 0, opacity: 1 }}
-                  initial={{ y: 24, opacity: 0 }}
+                  initial={reduceMotion ? false : { y: 24, opacity: 0 }}
                   key={agent.id}
-                  transition={{ duration: 0.8, ease: EASE, delay: Math.min(i, 8) * 0.05 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.8, ease: EASE, delay: Math.min(i, 8) * 0.05 }
+                  }
                 >
                   <AgentCard agent={agent} />
                 </motion.div>
@@ -244,6 +322,8 @@ export default function MarketplacePage() {
                 onClick={() => {
                   setCategory('all')
                   setVerifiedOnly(false)
+                  setRisk('all')
+                  setPrice('all')
                 }}
                 type="button"
               >

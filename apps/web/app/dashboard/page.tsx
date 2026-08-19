@@ -6,6 +6,16 @@ export const metadata: Metadata = {
   description: 'Your hired agents, live. Every action pre-registered on-chain.',
 }
 
-export default function Page() {
-  return <DashboardPage />
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ agentId?: string | string[]; jobId?: string | string[] }>
+}) {
+  const query = await searchParams
+  return (
+    <DashboardPage
+      agentId={typeof query.agentId === 'string' ? query.agentId : undefined}
+      jobId={typeof query.jobId === 'string' ? query.jobId : undefined}
+    />
+  )
 }

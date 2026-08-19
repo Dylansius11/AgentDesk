@@ -16,3 +16,18 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+
+@media (max-width: 720px) {
+  a,
+  button,
+  select,
+  input {
+    min-width: 44px;
+    min-height: 44px !important;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+  }
+}
