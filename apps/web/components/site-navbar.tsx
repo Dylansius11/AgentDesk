@@ -38,21 +38,21 @@ export default function SiteNavbar() {
           />
           <span className={styles.brand}>AgentDesk</span>
         </a>
-        <nav className={styles.navLinks}>
-          <a className={styles.navLink} href="/marketplace">
-            Marketplace
-          </a>
-          <a className={styles.navLink} href="/leaderboard">
-            Leaderboard
-          </a>
-          <a className={styles.navLink} href="/dashboard">
-            Dashboard
-          </a>
-          <a className={styles.navLink} href="/verify">
-            Verify
-          </a>
-        </nav>
       </div>
+      <nav className={styles.navLinks} aria-label="Primary">
+        <a className={styles.navLink} href="/marketplace">
+          Marketplace
+        </a>
+        <a className={styles.navLink} href="/leaderboard">
+          Leaderboard
+        </a>
+        <a className={styles.navLink} href="/dashboard">
+          Dashboard
+        </a>
+        <a className={styles.navLink} href="/verify">
+          Verify
+        </a>
+      </nav>
       <div className={styles.navRight}>
         <button className={styles.systemsButton} type="button">
           <span className={styles.systemsCircle}>

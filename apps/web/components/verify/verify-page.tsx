@@ -81,7 +81,7 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                 <div className={styles.titleRow}>
                   <h1 className={styles.agentName}>Audit {agent.name}</h1>
                   {agent.verified ? (
-                    <span className={styles.verifiedPill}>🛡 Verified Ledger</span>
+                    <span className={styles.verifiedPill}>✓ Verified Ledger</span>
                   ) : (
                     <span className={styles.noProofPill}>No Proof Yet</span>
                   )}
@@ -131,7 +131,7 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
               onClick={triggerRecompute}
               type="button"
             >
-              {recomputing ? 'Scanning Chain...' : '⚡ Recompute from Chain'}
+              {recomputing ? 'Scanning Chain...' : 'Recompute from Chain'}
             </button>
             {recomputing && (
               <div className={styles.scanningBar}>
@@ -271,7 +271,7 @@ export default function VerifyPage({ agent }: { agent: Agent }) {
                               }}
                               type="button"
                             >
-                              {copiedHash === `hash-${r.recordId}` ? '✓' : '📋'}
+                              {copiedHash === `hash-${r.recordId}` ? '✓' : 'Copy'}
                             </button>
                           </td>
                           <td>
