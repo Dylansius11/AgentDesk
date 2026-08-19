@@ -40,15 +40,12 @@
  * the same wallet across a given agent's repeat hires, rather than minting
  * a new one per job) is still a real follow-up, not a silent gap.
  *
- * hireErc8183Agent() is wired to the real SDK call but genuinely untested
- * live this wave: it needs (a) a real ERC-8004-registered counterparty
- * `provider` address willing to receive the job, and (b) $U (United
- * Stables, the ERC-8183 payment token — confirmed live on chain 97 at
- * 0xc70B8741B8B07A6d61E54fd4B20f22Fa648E5565) balance in the wallet, which
- * has no self-serve faucet (it's Ownable; `owner()` reads a real address
- * that isn't us). Neither is an account/API gate — both are "we don't have
- * the counterparty/funds yet," reported plainly per the task brief rather
- * than faked.
+ * hireErc8183Agent() is wired to the real SDK call but still needs one live
+ * acceptance run with (a) a willing seller/provider address and (b) a fresh
+ * buyer wallet holding tBNB and $U. `$U` is self-serve on Chapel as of
+ * 2026-08-19 via https://united-coin-u.github.io/u-faucet/; the prior
+ * no-faucet conclusion was stale. The remaining work is integration and
+ * deploy-safe wallet funding, not payment-token access.
  */
 import {
   buildHireCalls,

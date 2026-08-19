@@ -52,7 +52,7 @@ app.get('/api/health', async (c) => {
         ? { status: 'ok' as const, latencyMs: db.latencyMs }
         : { status: 'error' as const, error: db.error }
       : { status: 'unconfigured' as const },
-    bscRpc: integrationConfigured.bscRpc
+    bscRpc: integrationConfigured.bscRpc || integrationConfigured.bscTestnetRpc
       ? { status: 'configured' as const } // TODO(Phase B): live RPC probe via circuit breaker
       : { status: 'unconfigured' as const },
     scan8004: integrationConfigured.scan8004

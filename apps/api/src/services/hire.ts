@@ -32,10 +32,9 @@
  * material NEVER persisted to Postgres in plaintext — that's deliberate),
  * not a silent gap.
  */
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { HireConfig } from '@agentdesk/sdk'
-import dotenv from 'dotenv'
 import { asc, eq } from 'drizzle-orm'
 import { createPublicClient, createWalletClient, http, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -63,13 +62,10 @@ const SESSION_CHAIN_ID = 97
 const FUND_AMOUNT_WEI = parseEther('0.02')
 
 /**
- * A real ERC-8004-registered address, confirmed live on Chapel (chain 97)
- * via a direct 8004scan query — INTEGRATION.md I4 "RE-CHECKED" note
- * ("Tianquan Gateway", not owned by our own team). Used ONLY as the
- * `provider` argument to the real `hireErc8183Agent()` call in fundJob() so
- * that call is never made against a fabricated counterparty — the call is
- * still expected to fail at the real $U wall, which has nothing to do with
- * this address's validity.
+ * A real ERC-8004-registered address, confirmed live on Chapel (chain 97).
+ * It is a protocol-compatible provider candidate, not proof that the owner
+ * is willing to fulfil this specific job. Replace it with the selected
+ * listing's verified seller address before the production hire flow.
  */
 const KNOWN_REAL_ERC8004_PROVIDER = '0x816cbc5e8bb7c722f0329afee554d0e148959cee' as const
 
@@ -175,44 +171,32 @@ async function getSessionRowByJobId(db: ReturnType<typeof requireDb>, jobId: str
 }
 
 // ---------------------------------------------------------------------------
-// Deployer-funded gas for fresh per-job Altana wallets
-// (mirrors scripts/altana-live-proof.ts's funding step exactly — same
-// scoped, never-printed env read; deployer key never leaves this process)
+// Dedicated gas funding for fresh per-job Altana wallets.
 // ---------------------------------------------------------------------------
 
-function readDeployerPrivateKey(): `0x${string}` {
-  const deployerEnvPath = resolve(
-    import.meta.dirname,
-    '..',
-    '..',
-    '..',
-    '..',
-    'packages',
-    'contracts',
-    '.env.chapel-deploy',
-  )
-  const parsed = dotenv.parse(readFileSync(deployerEnvPath, 'utf8'))
-  const key = parsed.PRIVATE_KEY
-  if (!key) throw new Error('hire: packages/contracts/.env.chapel-deploy has no PRIVATE_KEY')
-  return key as `0x${string}`
+function getFundingPrivateKey(): `0x${string}` {
+  if (!env.ALTANA_FUNDING_PRIVATE_KEY) {
+    throw new Error('hire: ALTANA_FUNDING_PRIVATE_KEY not configured — cannot fund a fresh Altana wallet')
+  }
+  return env.ALTANA_FUNDING_PRIVATE_KEY as `0x${string}`
 }
 
 async function fundAgentWallet(address: `0x${string}`, amountWei: bigint): Promise<`0x${string}`> {
   if (!env.BSC_TESTNET_RPC_URL) {
     throw new Error('hire: BSC_TESTNET_RPC_URL not configured — cannot fund a fresh Altana wallet')
   }
-  const deployerPrivateKey = readDeployerPrivateKey()
+  const fundingPrivateKey = getFundingPrivateKey()
   const publicClient = createPublicClient({ chain: bscTestnet, transport: http(env.BSC_TESTNET_RPC_URL) })
-  const deployerAccount = privateKeyToAccount(deployerPrivateKey)
-  const deployerBalance = await publicClient.getBalance({ address: deployerAccount.address })
-  if (deployerBalance < amountWei) {
+  const fundingAccount = privateKeyToAccount(fundingPrivateKey)
+  const fundingBalance = await publicClient.getBalance({ address: fundingAccount.address })
+  if (fundingBalance < amountWei) {
     throw new Error(
-      `hire: Chapel deployer balance (${deployerBalance} wei) is below the funding amount (${amountWei} wei) — cannot fund fresh Altana wallet`,
+      `hire: funding wallet balance (${fundingBalance} wei) is below the funding amount (${amountWei} wei) — cannot fund fresh Altana wallet`,
     )
   }
   const walletClient = createWalletClient({
     chain: bscTestnet,
-    account: deployerAccount,
+    account: fundingAccount,
     transport: http(env.BSC_TESTNET_RPC_URL),
   })
   const txHash = await walletClient.sendTransaction({ to: address, value: amountWei })

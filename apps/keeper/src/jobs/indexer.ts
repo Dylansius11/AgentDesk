@@ -40,6 +40,8 @@ import { logger } from '../logger.js'
 
 /** In-process only — see the Phase B TODO above for why this isn't durable yet. */
 let lastIndexedBlock: bigint | null = null
+/** Public RPCs commonly cap eth_getLogs at 50,000 blocks per request. */
+const MAX_BLOCKS_PER_QUERY = 50_000n
 
 function startingBlock(): bigint {
   if (!env.PROOFLEDGER_DEPLOY_BLOCK) return 0n
@@ -80,7 +82,10 @@ export async function runIndexerTick(): Promise<void> {
   }
 
   const fromBlock = lastIndexedBlock
-  const toBlock = latestBlock
+  const toBlock =
+    latestBlock - fromBlock + 1n > MAX_BLOCKS_PER_QUERY
+      ? fromBlock + MAX_BLOCKS_PER_QUERY - 1n
+      : latestBlock
 
   const [decisionEvents, outcomeEvents] = await Promise.all([
     publicClient.getContractEvents({
@@ -192,4 +197,7 @@ export async function runIndexerTick(): Promise<void> {
   }
 
   lastIndexedBlock = toBlock + 1n
+  if (lastIndexedBlock <= latestBlock) {
+    await runIndexerTick()
+  }
 }

@@ -73,6 +73,10 @@ const EnvSchema = z.object({
   ALTANA_WALLET_ADDRESS: z.string().min(1).optional(),
   ALTANA_WALLET_PRIVATE_KEY: z.string().min(1).optional(),
 
+  // Dedicated Chapel gas sponsor for fresh per-job Altana wallets. Keep this
+  // separate from the ProofLedger attester, demo-agent, and bootstrap keys.
+  ALTANA_FUNDING_PRIVATE_KEY: z.string().min(1).optional(),
+
   // x402 / B402 (I5) — per-task payments, USD1 settlement
   X402_FACILITATOR_URL: z.string().url().optional(),
   PROTOCOL_FEE_BPS: z.coerce.number().int().nonnegative().default(300),
