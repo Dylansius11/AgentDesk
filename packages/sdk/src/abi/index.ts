@@ -7,3 +7,6 @@
  * barrel (schemas/index.ts, fixtures/index.ts).
  */
 export { proofLedgerAbi } from "./proof-ledger.js";
+export { agenticCommerceAbi } from "./agentic-commerce.js";
+export { evaluatorRouterAbi } from "./evaluator-router.js";
+export { erc20Abi } from "./erc20.js";

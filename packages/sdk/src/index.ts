@@ -9,3 +9,4 @@ export * from "./schemas/index.js";
 export * from "./fixtures/index.js";
 export * from "./client/index.js";
 export * from "./abi/index.js";
+export * from "./erc8183.js";
