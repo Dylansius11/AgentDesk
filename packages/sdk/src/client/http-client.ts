@@ -157,7 +157,10 @@ export class HttpAgentDeskClient implements AgentDeskClient {
     if (params.sort) query.set("sort", params.sort);
     const suffix = query.toString() ? `?${query.toString()}` : "";
     const body = await this.request<{ data: WireAgent[] }>(`/v1/agents${suffix}`);
-    return (body.data ?? []).map(adaptAgent);
+    // The SDK Agent schema only models BNB Chain (56 mainnet / 97 testnet);
+    // 8004scan also lists agents on other chains — keep the marketplace honest
+    // by dropping rows outside our two supported chains.
+    return (body.data ?? []).filter((a) => a.chainId === 56 || a.chainId === 97).map(adaptAgent);
   }
 
   async getAgent(id: string): Promise<Agent | null> {
