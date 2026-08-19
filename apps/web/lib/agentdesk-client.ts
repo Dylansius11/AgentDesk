@@ -7,8 +7,8 @@
  * or hand-rolled mock data directly.
  *
  * Seam switch: `NEXT_PUBLIC_DEMO_MODE` picks the backing client.
- *   - `"demo"`  (default) → `FixturesAgentDeskClient` (Phase A fixtures)
- *   - any other  → `HttpAgentDeskClient` hitting `apps/api` `/v1/*`
+ *   - unset / `"demo"`  (default) → `FixturesAgentDeskClient` (Phase A fixtures)
+ *   - `"http"`          → `HttpAgentDeskClient` hitting `apps/api` `/v1/*`
  *
  * HTTP mode currently serves real 8004scan identity; listing/proof/write
  * paths stay explicit defaults until the publish + ERC-8183 flows land.
@@ -19,8 +19,8 @@ import {
   type AgentDeskClient,
 } from '@agentdesk/sdk'
 
-const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'demo'
+const httpMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'http'
 
-export const client: AgentDeskClient = demoMode
-  ? new FixturesAgentDeskClient()
-  : new HttpAgentDeskClient(process.env.NEXT_PUBLIC_API_BASE_URL)
+export const client: AgentDeskClient = httpMode
+  ? new HttpAgentDeskClient(process.env.NEXT_PUBLIC_API_BASE_URL)
+  : new FixturesAgentDeskClient()
