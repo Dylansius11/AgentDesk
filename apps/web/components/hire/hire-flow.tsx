@@ -76,7 +76,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
   const action = primaryEntry?.label ?? 'act on your behalf'
-  const actionSentence = action.replace(/\s+— nothing else$/, '').replace(/^./, (c) => c.toLowerCase())
+  const actionSentence = action.replace(/\s+- nothing else$/, '').replace(/^./, (c) => c.toLowerCase())
   const escrow = agent.pricePerTaskUsd1 * 3 * 1.03
 
   const sentence = useMemo(() => {
@@ -103,7 +103,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   // Two on-chain steps are still fixtures-backed in Phase B (the real ERC-8183
   // create → fund flow lands next); only wallet connect is live today.
   const authRows = [
-    'Grant limited access — exactly the limits above',
+    'Grant limited access - exactly the limits above',
     `Fund escrow: $${escrow.toFixed(2)} (3 tasks + fee)`,
   ]
 
@@ -132,7 +132,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
       setJobId(session.id)
       setSuccess(true)
     } catch {
-      showToast('Could not start this session — try again.')
+      showToast('Could not start this session - try again.')
     } finally {
       setSubmitting(false)
     }
@@ -180,14 +180,14 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                   className={styles.stopButton}
                   onClick={async () => {
                     if (jobId) await client.revoke(jobId)
-                    showToast('Session revoked — effective next block.')
+                    showToast('Session revoked - effective next block.')
                   }}
                   type="button"
                 >
                   STOP
                 </button>
                 <p className={styles.stopNote}>
-                  This is your stop button. It's always one tap away — effective immediately.
+                  This is your stop button. It's always one tap away - effective immediately.
                 </p>
               </div>
 
@@ -203,7 +203,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
           ) : step === 1 ? (
             <div className={styles.stepBody}>
               <h1 className={styles.title}>Set your limits.</h1>
-              <p className={styles.sub}>Safety made friendly — plain sentences, exact caps.</p>
+              <p className={styles.sub}>Safety made friendly - plain sentences, exact caps.</p>
 
               <label className={styles.fieldLabel} htmlFor="amount">
                 Amount to manage
@@ -312,7 +312,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                   </span>
                   {isConnected && address ? (
                     <span className={styles.authLabelDone}>
-                      Wallet connected — {shortenAddress(address)}
+                      Wallet connected - {shortenAddress(address)}
                     </span>
                   ) : (
                     <ConnectWalletButton className={styles.authConnect} />

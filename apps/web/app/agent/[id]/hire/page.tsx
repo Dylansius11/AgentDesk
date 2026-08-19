@@ -15,8 +15,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const agent = await client.getAgent(id)
-  if (!agent) return { title: 'Agent not found — AgentDesk' }
-  return { title: `Hire ${agent.name} — AgentDesk` }
+  if (!agent) return { title: 'Agent not found - AgentDesk' }
+  return { title: `Hire ${agent.name} - AgentDesk` }
 }
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {

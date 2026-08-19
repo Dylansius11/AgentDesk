@@ -116,11 +116,11 @@ if (duplicateRecordIds === 0) {
 
 console.log("");
 if (failures > 0) {
-  console.error(`[fixtures:validate] FAILED — ${failures} issue(s) found.\n`);
+  console.error(`[fixtures:validate] FAILED - ${failures} issue(s) found.\n`);
   process.exit(1);
 } else {
   console.log(
-    `[fixtures:validate] PASSED — ${AGENTS.length} agents (${unverified.length} unverified), ${HIRE_SESSIONS.length} hire sessions, ${recordIds.size} proof records, all schema-valid.\n`,
+    `[fixtures:validate] PASSED - ${AGENTS.length} agents (${unverified.length} unverified), ${HIRE_SESSIONS.length} hire sessions, ${recordIds.size} proof records, all schema-valid.\n`,
   );
   process.exit(0);
 }

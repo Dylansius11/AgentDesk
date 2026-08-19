@@ -8,7 +8,7 @@ export default function ClosingCta() {
         <div className={styles.inner}>
           <p className={shared.eyebrow}>
             <span className={shared.eyebrowDot} />
-            Built for BNB Chain — Build the Era
+            Built for BNB Chain - Build the Era
           </p>
           <h2 className={styles.heading}>
             The next agent you hire should be able to prove itself.

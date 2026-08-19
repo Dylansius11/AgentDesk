@@ -39,7 +39,7 @@ export default function ProofBand() {
           <div className={styles.right}>
             <p className={styles.statement}>
               Every intention is registered on-chain <em>before</em> the trade. Every outcome is
-              recorded after. Append-only, forever — nobody can edit history.
+              recorded after. Append-only, forever - nobody can edit history.
             </p>
 
             <div className={styles.diagram}>

@@ -159,7 +159,7 @@ export default function DashboardPage({
       setToast(`Revoked at ${time}`)
       setTimeout(() => setToast(null), 3200)
     } catch {
-      setToast('Could not stop this session — try again.')
+      setToast('Could not stop this session - try again.')
       setTimeout(() => setToast(null), 3200)
     }
   }
@@ -317,7 +317,7 @@ export default function DashboardPage({
             onClick={() => void armOrStop()}
             type="button"
           >
-            {stopArmed ? 'Tap again to stop — effective immediately' : 'STOP'}
+            {stopArmed ? 'Tap again to stop - effective immediately' : 'STOP'}
           </button>
         </div>
       )}

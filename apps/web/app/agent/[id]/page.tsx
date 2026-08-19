@@ -15,9 +15,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const agent = await client.getAgent(id)
-  if (!agent) return { title: 'Agent not found — AgentDesk' }
+  if (!agent) return { title: 'Agent not found - AgentDesk' }
   return {
-    title: `${agent.name} — AgentDesk`,
+    title: `${agent.name} - AgentDesk`,
     description: `${agent.tagline}. ${agent.verified ? 'Verified on-chain track record.' : 'Awaiting first on-chain proof.'}`,
   }
 }

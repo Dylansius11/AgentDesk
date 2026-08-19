@@ -10,7 +10,7 @@ const CATEGORIES = [
   {
     id: 'grid',
     title: 'Grid Trading',
-    tagline: 'Buys the dip, sells the rip — automatically.',
+    tagline: 'Buys the dip, sells the rip - automatically.',
     chip: 'PancakeSwap',
     spark: [3, 4, 3.5, 5, 4.5, 6, 5.5, 7, 6.5, 8],
   },
@@ -208,7 +208,7 @@ export default function CategoriesScroll() {
                 total={CATEGORIES.length}
               >
                 <p className={styles.stepIndex}>
-                  {String(i + 1).padStart(2, '0')} — {category.title}
+                  {String(i + 1).padStart(2, '0')} - {category.title}
                 </p>
                 <p className={styles.stepStatement}>{category.tagline}</p>
               </Step>

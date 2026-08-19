@@ -130,7 +130,7 @@ function AgentCard({ agent }: { agent: Agent }) {
         title="Risk reflects the listing's declared operating limits and allowed protocols."
       >
         Risk: {agent.riskLevel[0]?.toUpperCase()}
-        {agent.riskLevel.slice(1)} · Executes on {agent.trustPanel.allowlist[0]?.protocol ?? '—'}
+        {agent.riskLevel.slice(1)} · Executes on {agent.trustPanel.allowlist[0]?.protocol ?? '-'}
       </div>
       <div className={styles.cardBottom}>
         <span
@@ -316,7 +316,7 @@ export default function MarketplacePage({
             </div>
           ) : (
             <div className={styles.empty}>
-              <p className={styles.emptyText}>No agents match yet — try widening filters.</p>
+              <p className={styles.emptyText}>No agents match yet - try widening filters.</p>
               <button
                 className={styles.resetPill}
                 onClick={() => {

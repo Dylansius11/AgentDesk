@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'AgentDesk — Proof, not promises.',
+  title: 'AgentDesk - Proof, not promises.',
   description:
     "The marketplace for BNB Chain's 200,000+ on-chain agents. Every track record verifiable. Every hire capped. Every agent revocable in one tap.",
   icons: { icon: '/logo.png' },

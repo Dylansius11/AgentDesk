@@ -66,7 +66,7 @@ export const AgentSchema = z
     },
     {
       message:
-        "Agent.verified=true requires proofProgram=true and non-null metrics with tasksResolved>0 — verified status must be derivable from proof records alone",
+        "Agent.verified=true requires proofProgram=true and non-null metrics with tasksResolved>0 - verified status must be derivable from proof records alone",
       path: ["verified"],
     },
   )

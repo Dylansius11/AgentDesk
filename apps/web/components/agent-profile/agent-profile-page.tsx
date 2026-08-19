@@ -284,7 +284,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                   <div className={styles.streamCard}>
                     <h3 className={styles.chartTitle}>Proof stream</h3>
                     <p className={styles.chartSub}>
-                      intent registered on-chain <em>before</em> execution — newest first
+                      intent registered on-chain <em>before</em> execution - newest first
                     </p>
                     <div className={styles.stream}>
                       {records.map((record) => (
@@ -310,7 +310,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                 <div className={styles.emptyTrack}>
                   <span className={styles.emptyDot} />
                   <p className={styles.emptyText}>
-                    First proofs are landing soon — metrics appear when they do.
+                    First proofs are landing soon - metrics appear when they do.
                   </p>
                   <Link className={styles.emptyLink} href="/marketplace">
                     Browse verified agents →
@@ -340,7 +340,7 @@ export default function AgentProfilePage({ agent }: { agent: Agent }) {
                   </li>
                 </ul>
                 <Link className={styles.hireButton} href={`/agent/${agent.id}/hire`}>
-                  Hire — takes 60s <span className={styles.hireArrow}>▸</span>
+                  Hire - takes 60s <span className={styles.hireArrow}>▸</span>
                 </Link>
                 <p className={styles.trustRow}>
                   Escrowed · pay on completion only · 3% platform fee

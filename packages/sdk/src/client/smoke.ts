@@ -28,7 +28,7 @@ function assert(condition: boolean, message: string): void {
 async function main(): Promise<void> {
   const client = new FixturesAgentDeskClient();
 
-  console.log("\n[smoke] getAgents() — no filter");
+  console.log("\n[smoke] getAgents() - no filter");
   const t0 = Date.now();
   const all = await client.getAgents();
   const elapsed0 = Date.now() - t0;
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     "HealthGuard (the demo-script agent) is present",
   );
 
-  console.log("\n[smoke] getAgents() — filtered + sorted");
+  console.log("\n[smoke] getAgents() - filtered + sorted");
   const healthVerified = await client.getAgents({ category: "health", verified: true, sort: "verifiedReturn" });
   assert(
     healthVerified.every((a) => a.category === "health" && a.verified),
@@ -84,7 +84,7 @@ async function main(): Promise<void> {
   assert(session.session.keystoreTx.startsWith("0x"), "hire() session carries a keystoreTx");
   assert(session.feeUsd1 === 6, `hire() computes the 3% protocol fee correctly (got ${session.feeUsd1}, expected 6)`);
 
-  console.log(`\n[smoke] getDashboard() — ${FULL ? "full (~11s)" : "short (~1s)"} mode`);
+  console.log(`\n[smoke] getDashboard() - ${FULL ? "full (~11s)" : "short (~1s)"} mode`);
   const seen: DashboardEvent["type"][] = [];
   const stream = client.getDashboard(session.id);
   const first = await stream.next();
@@ -121,10 +121,10 @@ async function main(): Promise<void> {
 
   console.log("");
   if (failures > 0) {
-    console.error(`[smoke] FAILED — ${failures} assertion(s) failed.\n`);
+    console.error(`[smoke] FAILED - ${failures} assertion(s) failed.\n`);
     process.exit(1);
   }
-  console.log("[smoke] PASSED — AgentDeskClient (fixtures) round-trips real fixture data end to end.\n");
+  console.log("[smoke] PASSED - AgentDeskClient (fixtures) round-trips real fixture data end to end.\n");
 }
 
 main().catch((err) => {

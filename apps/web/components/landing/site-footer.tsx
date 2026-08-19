@@ -23,7 +23,7 @@ export default function SiteFooter() {
               width={18}
             />
             <span className={styles.brand}>
-              AgentDesk — proof, not promises.
+              AgentDesk - proof, not promises.
             </span>
           </div>
 
@@ -38,7 +38,7 @@ export default function SiteFooter() {
           <div className={styles.meta}>
             <span className={styles.chip}>Demo data · BSC mainnet soon</span>
             <span className={styles.credit}>
-              Built for BNB Chain — Build the Era
+              Built for BNB Chain - Build the Era
             </span>
           </div>
         </div>

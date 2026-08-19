@@ -15,7 +15,7 @@ const STEPS = [
   },
   {
     title: 'Set your limits',
-    body: 'Daily cap, expiry, exactly what it may do — in plain sentences.',
+    body: 'Daily cap, expiry, exactly what it may do - in plain sentences.',
     vignette: 'limits',
   },
   {

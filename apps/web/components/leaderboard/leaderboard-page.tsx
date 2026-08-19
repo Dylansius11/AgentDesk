@@ -220,7 +220,7 @@ export default function LeaderboardPage() {
                             {i + 1}
                           </span>
                         ) : (
-                          <span className={s.rankNa}>—</span>
+                          <span className={s.rankNa}>-</span>
                         )}
                       </td>
                       <td className={s.tdAgent}>
@@ -237,16 +237,16 @@ export default function LeaderboardPage() {
                       <td className={s.tdNum}>
                         {agent.metrics
                           ? `${agent.metrics.verifiedReturnPct >= 0 ? '+' : ''}${agent.metrics.verifiedReturnPct.toFixed(1)}%`
-                          : '—'}
+                          : '-'}
                       </td>
                       <td className={s.tdNum}>
-                        {agent.metrics ? `${Math.round(agent.metrics.winRate * 100)}%` : '—'}
+                        {agent.metrics ? `${Math.round(agent.metrics.winRate * 100)}%` : '-'}
                       </td>
                       <td className={s.tdNum}>
-                        {agent.metrics ? `−${agent.metrics.maxDrawdownPct.toFixed(1)}%` : '—'}
+                        {agent.metrics ? `−${agent.metrics.maxDrawdownPct.toFixed(1)}%` : '-'}
                       </td>
                       <td className={s.tdNum}>
-                        {agent.metrics ? agent.metrics.tasksResolved.toLocaleString('en-US') : '—'}
+                        {agent.metrics ? agent.metrics.tasksResolved.toLocaleString('en-US') : '-'}
                       </td>
                       <td className={s.tdNum}>
                         {agent.metrics ? (
@@ -263,7 +263,7 @@ export default function LeaderboardPage() {
                             <span>{categoryStatValue(agent).toLocaleString('en-US')}</span>
                           )
                         ) : (
-                          '—'
+                          '-'
                         )}
                       </td>
                       <td className={s.tdAudit}>

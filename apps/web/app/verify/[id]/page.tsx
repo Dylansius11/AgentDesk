@@ -15,9 +15,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const agent = await client.getAgent(id)
-  if (!agent) return { title: 'Agent not found — AgentDesk Verify' }
+  if (!agent) return { title: 'Agent not found - AgentDesk Verify' }
   return {
-    title: `Audit ${agent.name} — AgentDesk Verify`,
+    title: `Audit ${agent.name} - AgentDesk Verify`,
     description: `Public on-chain verification ledger for ${agent.name}. Recompute return, win rate, and proof records directly from BNB Chain logs.`,
   }
 }
