@@ -3,14 +3,14 @@
 | | |
 |---|---|
 | **Purpose** | A single, honest snapshot of what's actually built, what's real vs. simulated, what's blocked and why. Unlike `docs/technical/ARCHITECTURE.md` (the intended system shape) and `docs/BUILD-PLAN.md` (the plan), this file describes **what genuinely exists right now**, independently verified. |
-| **As of** | 2026-08-17, end of the backend/contracts sprint (Waves 1–12, see `docs/AGENT-TASKS.md` for the full dispatch history) |
+| **As of** | 2026-08-19, refreshed after merging `origin/dev` through `bcb7451` and re-checking the API, keeper, OMP setup, and external integration docs. |
 | **Verification standard** | Every "real" claim below was independently re-checked by the PM (on-chain via `cast`, in Postgres via direct query, or via a live API call) before being recorded here — not just trusted from an agent report. See `docs/AGENT-TASKS.md` for the receipts (tx hashes, block numbers, row contents) behind each one. |
 
 ---
 
 ## 1. One-paragraph status
 
-**The backend and smart-contract layer are genuinely done and independently verified end-to-end on BSC Chapel testnet.** A real, BscScan-verified `ProofLedger` contract; a real keeper that indexes and attests against it; a real Postgres schema with real data; real scoped-session mechanics (both a self-hosted fallback and genuine Altana SDK sessions); real 8004scan agent data; a real job/hire lifecycle; and a real metrics-computation engine — all proven live, all QA-tested with two real bugs found and fixed. **The frontend (`apps/web`) is a separate, unverified, disconnected system** — real-looking screens exist on disk but were never tested, never committed, and consume a hand-rolled mock file instead of the real backend. **One real external blocker remains** (a payment token, `$U`, that only Altana can mint) and two accounts were never pursued (AWS Agent Studio, Agent.family) — everything else that was ever "not done" got closed this session.
+**The backend spine and ProofLedger are real, but the product is not end-to-end complete yet.** The contract, Postgres mirror, proof reads, metrics computation, 8004scan adapter, scoped sessions, and most job lifecycle endpoints exist. The public web app is deployed and consumes the shared fixtures client, while the live HTTP API is not deployed or connected to it. Remaining product gaps include publish/claim, authorization, live API enrichment, restart-safe keeper/session state, objective outcome resolution, x402 receipts, and the final ERC-8183 seller→fund→deliver→settle path. The old claim that `$U` had no faucet is now stale: a public Chapel `$U` faucet exists; the hire path still needs a funded fresh buyer wallet, a willing seller/provider, deployment-safe wallet funding, and one verified end-to-end run.
 
 ---
 
@@ -26,9 +26,9 @@
 | Database | Postgres via Supabase, Drizzle ORM (schema + migrations) | ✅ real |
 | Agent identity/discovery | 8004scan API (AltLayer), real key provisioned | ✅ real |
 | Agent wallets/sessions | `@altananetwork/sdk` (self-custodial, no API key needed) | ✅ real, proven |
-| Agent commerce | ERC-8183 (`hireErc8183Agent`, Altana's kernel contracts) | 🟡 wired, blocked on `$U` funding |
-| Frontend | Next.js 15 + TypeScript + Tailwind, `apps/web` | ⚠️ exists, unverified, disconnected |
-| Shared types | `packages/sdk` — zod schemas, fixtures, `AgentDeskClient` interface | ✅ real, but not consumed by `apps/web` |
+| Agent commerce | ERC-8183 (`hireErc8183Agent`, Altana kernel) | 🟡 wired; public Chapel `$U` faucet found, full seller→settle run still unverified |
+| Frontend | Next.js 15 + TypeScript + Tailwind, `apps/web` | 🟡 committed and publicly deployed; still fixtures-backed rather than live-API-backed |
+| Shared types | `packages/sdk` — zod schemas, fixtures, `AgentDeskClient` interface | ✅ consumed by `apps/web`; no production HTTP client implementation yet |
 | Package management | pnpm monorepo, Turborepo | ✅ real |
 | Dev tooling | `bnbchain-mcp`, `altana` MCP servers registered (Claude Code) | ✅ registered, session-restart-pending for interactive use |
 
@@ -57,9 +57,9 @@ All routes below are real, live, and were exercised in a dedicated QA pass (Wave
 | `GET /v1/agents`, `/v1/agents/:id` | ✅ real, live 8004scan data |
 | `GET /v1/agents/:id/proof`, `/v1/verify/:id` | ✅ real, reads `proof_records` |
 | `GET /v1/stats` | ✅ real aggregate counters |
-| `GET /v1/leaderboard` | ✅ real query — returns `[]` only because `listings` is empty (see §5) |
+| `GET /v1/leaderboard` | ✅ real query; currently returns two seeded proof-backed rows |
 | `POST/GET /v1/sessions*` (self-hosted) | ✅ real, Postgres + real Chapel enforcement |
-| `POST /v1/jobs`, `/fund`, `/revoke`, `/events` | ✅ real — creates a real Altana wallet + session per job |
+| `POST /v1/jobs`, `/fund`, `/revoke`, `/events` | 🟡 real partial lifecycle — wallet/session creation and revoke exist; restart recovery, authorization, `$U` funding proof, seller delivery/settlement, and job-specific live SSE remain incomplete |
 
 ### 3.4 Agent wallets & sessions — two real, coexisting mechanisms
 1. **Self-hosted session enforcement** (`services/session-enforcement.ts`): a scoped-session mechanism AgentDesk built itself (allowlist, spend cap, expiry, revoke) — proven end-to-end, honestly labeled `enforcedBy: "agentdesk-self-hosted"` in every API response so it's never mistaken for Altana.
@@ -73,12 +73,13 @@ Both mechanisms are real, not simulations of each other — self-hosted was buil
 
 | Item | Blocker type | Detail |
 |---|---|---|
-| **ERC-8183 hire completion** (`hireErc8183Agent` actually funding an escrow) | **Hard external wall** | `$U` (Altana's payment token) is `Ownable`, zero public mint capacity even for its privileged `autoOwner` role (`autoMintMaxLimit()==0`), no faucet found. Confirmed via real on-chain revert reasons, not guesswork. The code path is real and correctly wired — `fundJob()` honestly reports `pending_funding` rather than faking success. |
-| **AWS Agent Studio** (agent runtime hosting) | **Account, not attempted** | Needs an AWS account; 48h-free-trial constraint noted in docs but never pursued this session — deprioritized in favor of proof-engine depth. |
-| **Agent.family** (agent-to-agent marketplace access) | **Account, not attempted** | Same category as above — hackathon-partner access, not pursued. |
-| **BscScan verification** | ~~Blocker~~ **Resolved** | Was blocked on an API key; user provided one, contract is now verified. |
-| **Supabase / BscScan / 8004scan keys** | ~~Blocker~~ **Resolved** | All were plain self-serve or hackathon-participant perks, not structurally gated — all provisioned and wired this session. |
-| **Vercel / Railway deploy** | **Not yet executed, not blocked** | Both are plain self-serve signups (confirmed, no hackathon gate) — simply not done yet. No public URL exists for either `apps/web` or `apps/api` at time of writing. |
+| **ERC-8183 hire completion** (`hireErc8183Agent` funding and settling an escrow) | **Integration work, no longer a `$U` access wall** | A public Chapel faucet at `https://united-coin-u.github.io/u-faucet/` dispenses the same `$U` token used by Altana. Remaining work: use a fresh uncompromised buyer wallet with tBNB, claim `$U`, select a willing seller/provider, remove the local-only deployer-file dependency, then prove fund → submit → settle/refund on-chain. |
+| **Keeper historical catch-up** | **RPC capability** | The configured public RPC rejects scans over 50,000 blocks and has pruned the deployment-era history. The indexer now chunks requests to 50,000 blocks, but full backfill still needs an archive-capable Chapel RPC or a durable checkpoint established before pruning. |
+| **AWS / BNB Agent Studio** | **Optional account/runtime setup** | Not required by the current Hono/Postgres/keeper backend. It is still needed if we want the four planned demo-agent runtimes. Current tooling is the Python `bag` CLI; local `bag dev` works without AgentCore, while AWS deployment needs an AWS account, IAM/CDK permissions, and pay-as-you-go AgentCore resources. |
+| **Agent.family** | **Account, not attempted** | Partner marketplace access is still not configured; it does not block the core API or ProofLedger. |
+| **BscScan verification** | ~~Blocker~~ **Resolved** | The deployed ProofLedger source is verified. |
+| **Supabase / BscScan credentials** | ~~Blocker~~ **Resolved** | Supabase and BscScan are configured locally. Local 8004scan credentials are currently missing from the migrated API env. |
+| **Vercel / Railway deploy** | **Partially complete** | Web is live at `https://agentdesk-web-delta.vercel.app`. API and keeper are not publicly deployed in the current verified state; the historical SDK/NodeNext build regression is fixed, but Railway auth and a deployment-safe job-wallet funding secret/path still need resolution. |
 
 ---
 
@@ -86,24 +87,24 @@ Both mechanisms are real, not simulations of each other — self-hosted was buil
 
 Nothing below is fabricated data presented as real — everything is either clearly labeled or structurally incapable of lying (e.g., an empty table returns `[]`, not invented rows). This section exists so nobody mistakes "structurally real but data-thin" for "broken."
 
-- **`GET /v1/leaderboard` returns `[]`.** The query is real (joins `proof_metrics` ⋈ `listings`), but `listings` (marketplace metadata) has zero rows — nobody has published/listed an agent yet. The metrics engine has real data to show the moment a listing exists.
-- **`verifiedReturnPct` is a raw dollar sum, not a true percentage.** `sizeUsd1` (the trade's notional) is only ever inside `intentHash`'s hash pre-image on-chain, never itself indexed into `proof_records` — normalizing this needs a schema/indexing change, documented as a follow-up, not fabricated in the meantime.
-- **All resolved outcomes so far carry `pnlUsd1=0` / neutral status.** The keeper's outcome resolution deliberately never fabricates a price — real PancakeSwap Quoter / Venus position-state reads (the actual per-category resolution design in `SMART-CONTRACT.md` §4) were never wired this session. Every attested outcome is honestly neutral rather than a fabricated win/loss.
-- **Altana session key material lives in-process only**, never persisted to Postgres (deliberate — raw session keys should never sit in plaintext in the DB). A server restart between granting and revoking a session means revocation-by-id honestly fails (`SessionNotLiveError`) rather than faking success. A real fix needs a proper key-material store design, not a quick patch.
-- **`apps/web` is disconnected from all of the above.** It imports a hand-rolled `lib/mock-agents.ts`, not `packages/sdk`'s real, schema-validated `AgentDeskClient` — meaning even a perfectly working frontend right now would be clicking through fake local data, not the real backend this document describes. See §6.
-- **`packages/sdk`'s fixtures-backed `AgentDeskClient`** (12 schema-validated mock agents, artificial latency, scripted dashboard events) is the *intended* Phase-A mock seam — real, proven (17/17 smoke test), and specifically designed to be swapped for the real API client without any page changes. It is not currently wired into `apps/web` either (see §6) — `apps/web` uses its own separate, unvalidated mock file instead of this one.
+- **Leaderboard data exists, but it is thin.** The real query currently returns seeded rows for agent IDs `1` and `77`. Their categories were manually assigned for demo visibility; this is not equivalent to a completed publish/claim flow.
+- **`verifiedReturnPct` is a raw dollar sum, not a true percentage.** `sizeUsd1` is only inside the `intentHash` pre-image, so the current schema cannot normalize return by notional.
+- **Outcome resolution is not objective yet.** Existing records are mostly zero-PnL/neutral because PancakeSwap price and Venus position resolvers are not wired. The one historical `win` row still has zero PnL.
+- **Altana session material is process-local.** Per-job wallet files exist, but the in-memory SDK session is not rehydrated after restart, so later fund/revoke calls can fail honestly rather than recover.
+- **The web app uses the shared SDK seam but remains fixtures-backed.** `apps/web/lib/agentdesk-client.ts` uses `FixturesAgentDeskClient`; there is no production HTTP/SSE client implementation selected by `NEXT_PUBLIC_DEMO_MODE`.
+- **Publish and authorization are incomplete.** `POST /v1/publish` returns `501`; job/session mutation routes do not yet verify wallet ownership/signatures.
+- **x402 is not implemented.** The env/schema placeholders and `receipts` table exist, but no facilitator call or receipt-writing service is present.
 
 ---
 
-## 6. Frontend (`apps/web`) — separate, unverified, not covered by anything above
+## 6. Frontend (`apps/web`) — deployed prototype, not live-backend product
 
-This deserves its own section because it's easy to assume "backend is done" implies "the demo works." It doesn't, yet.
-
-- Real, substantial screen implementations exist on disk for landing, marketplace, agent profile, hire flow, dashboard, leaderboard, and `/verify` — properly routed, including dynamic segments. `jobs/` and `publish/` routes are empty/not started.
-- **Never committed to git** — sitting as untracked files all session, authorship unconfirmed (very likely a teammate working in parallel, never resolved).
-- **Never tested** — no confirmed successful boot, no confirmed working typecheck, no click-through verification of any screen against its BUILD-PLAN acceptance criteria.
-- **Not wired to the real backend** — imports `apps/web/lib/mock-agents.ts` (a separate, hand-rolled, unvalidated data file), not `packages/sdk`'s real `AgentDeskClient`. This is a genuine mock-seam violation (`CLAUDE.md` §6) that needs reconciling before the frontend can honestly claim to demo the real system.
-- **A0.2 (design tokens) was never built** — 251 raw hex values across the app, no tokens file, no `/style` route. Everything downstream got built on a missing foundation.
+- Landing, marketplace, profile, hire, dashboard, leaderboard, and verify screens are committed.
+- The public Vercel deployment responds with real rendered HTML at `https://agentdesk-web-delta.vercel.app`.
+- Components consume the shared `@agentdesk/sdk` fixtures client rather than importing ad-hoc mock files, which fixes the original seam violation.
+- The production HTTP/SSE `AgentDeskClient` adapter and runtime demo/live switch are still missing, so the deployed UI does not exercise the Hono API.
+- The latest `dev` merge intentionally reverted the Wave 13c style-token `/style` work; A0.2 is therefore not currently satisfied on this branch.
+- Publish/jobs history screens and a verified end-to-end Nina hire→dashboard→STOP run remain incomplete.
 
 ---
 
@@ -129,8 +130,9 @@ One process incident worth remembering: a dispatched agent once routed around a 
 
 ## 8. Honest next steps, in likely priority order
 
-1. **Decide what to do with `apps/web`** — confirm authorship, commit it as a safety net regardless, then either retrofit (tokens + reconnect to the real `AgentDeskClient`) or rebuild the disconnected parts.
-2. **Seed real `listings` rows** — the one thing standing between the (real, working) metrics engine and a non-empty leaderboard.
-3. **Deploy `apps/web` (Vercel) and `apps/api`/`apps/keeper` (Railway)** — both plain self-serve, unblocked, just not executed yet. Needed regardless of frontend state, for "publicly accessible during judging."
-4. **Pursue `$U` funding directly with Altana** (hackathon Discord/office-hours) if the ERC-8183 hire completion is judged worth the ask — otherwise document it as-is in the submission.
-5. **AWS Agent Studio / Agent.family** — only if the 4 demo agents / Agent.family integration checklist items are judged worth the account-setup time this late in the timeline.
+1. **Create a production HTTP/SSE `AgentDeskClient` and switch the web app to the live API**, retaining fixtures as an explicit judging fallback.
+2. **Make jobs deploy-safe and authenticated:** replace the hardcoded local deployer-file dependency, rotate exposed test keys, add wallet-signature checks, and rehydrate encrypted session material after restart.
+3. **Prove one complete ERC-8183 flow:** fresh buyer wallet → tBNB → public `$U` faucet → willing seller → fund → deliver → settle/refund. Then wire x402 receipts.
+4. **Fix keeper durability:** archive-capable Chapel RPC plus a persistent indexed-block checkpoint; then implement objective PancakeSwap/Venus outcome resolvers.
+5. **Complete publish/claim and live listing enrichment**, then deploy API + keeper to Railway and reconnect the already-live web.
+6. **Use BNB Agent Studio selectively:** scaffold one canary agent with `bag` and local `bag dev`; add AWS AgentCore only after the local agent flow is stable, then repeat for the remaining three agents.

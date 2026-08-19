@@ -81,7 +81,7 @@ Phase B (Build the Era)
 | ID | Task | Lane | Needs | Acceptance criteria |
 |---|---|---|---|---|
 | C1.1 | **ProofLedger contract** (Foundry): `registerDecision(agentId, intentHash, deadline)`, `attestOutcome(recordId, outcome, evidence)`, append-only invariant, events; unit tests incl. "cannot update/delete", "attest only after deadline" | ⛓️ C | — | `forge test` green; invariant test proves append-only; deployed to BSC Chapel testnet; verified on BscScan |
-| C1.2 | Demo agents ×4 (GridGoblin, YieldShepherd, HealthGuard, RangeRanger) via `bnb` CLI + Agent Studio; each with Altana wallet + scoped session config | ⛓️ C | — | Each agent has ERC-8004 ID visible on 8004scan; each answered a test task on testnet |
+| C1.2 | Demo agents ×4 (GridGoblin, YieldShepherd, HealthGuard, RangeRanger) via Agent Studio's current `bag` CLI; each with Altana wallet + scoped session config | ⛓️ C | — | Each agent has ERC-8004 ID visible on 8004scan; each answered a test task on testnet |
 | B1.1 | Real API server (Hono) replacing mocks: agents read-through from **8004scan API** → enrich w/ our DB cache; endpoints per `packages/sdk` | 🔌 B | C1.2 | `GET /v1/agents` returns live 8004scan data + our enrichment; mock flag off in web; response < 500ms p95 |
 | B1.2 | Postgres (Supabase) schema v1 per ERD + drizzle migrations | 🔌 B | — | Migration applies clean on fresh DB; schema matches ERD.md exactly |
 | F1.1 | Wire web to real API; keep fixtures behind a `DEMO_MODE` flag for fallback during judging | 🎨 F | B1.1 | Marketplace shows real registered agents (ours among them); graceful fallback if 8004scan rate-limits |
@@ -129,5 +129,5 @@ Phase B (Build the Era)
 - [ ] 8004scan Pro API key (hackathon participant tier)
 - [ ] Altana: SDK access, testnet faucet, workshop/office-hours dates
 - [ ] TermiX: BSC MCP server access + Agent.family account
-- [ ] AWS account for Agent Studio runtime (48h free trials — re-invoke on demand)
+- [ ] AWS account for optional AgentCore runtime deployment (`bag dev` works locally first; current AWS pricing is pay-as-you-go, not a guaranteed 48h free trial)
 - [ ] Hackathon intake form submitted (Sep 9 latest — do it Sep 8, not Sep 9)
