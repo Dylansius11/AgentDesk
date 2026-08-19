@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "check": "tsc --noEmit",
+    "test:scan8004": "tsx --test test/scan8004.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },

@@ -1,19 +1,13 @@
 /**
  * apps/api/src/services/scan8004.ts
  *
- * Read-through client for 8004scan (AltLayer) — INTEGRATION.md I2. This is
- * the ONLY place that should ever call api.8004scan.io.
+ * Read-through client for 8004scan's public API. This is the ONLY place
+ * that should call https://8004scan.io/api/v1/public.
  *
- * LIVE (2026-08-17): SCAN8004_API_KEY / SCAN8004_BASE_URL are provisioned.
- * Real base path is `/api/v1/...` (NOT `/v1/...` as the original stub
- * assumed — confirmed against the live OpenAPI doc at
- * `${SCAN8004_BASE_URL}/openapi.json` and a live `GET /api/v1/agents` call
- * that returned real rows, e.g. total=740636 across chains, chain_id=97
- * (BSC Chapel) rows present including AgentDesk's own demo-agent
- * registrations). Response shape confirmed from the real API, not guessed —
- * see AgentSummaryResponseSchema/AgentDetailResponseSchema below, which
- * zod-parse the *actual* field names 8004scan returns (snake_case,
- * `agent_id` composite `chain_id:registry_address:token_id`, etc.).
+ * The public API is anonymously usable at 10 requests/minute and 100/day.
+ * Fresh cache hits bypass upstream requests; anonymous misses share an
+ * in-process gate so development remains within that quota. A configured
+ * key is sent only as `X-API-Key`.
  *
  * Every function below zod-parses the live response before mapping into our
  * local domain shapes (types/domain.ts). Per CLAUDE.md rule 3, fields that
@@ -37,6 +31,7 @@ import type { AgentDetail, AgentSummary, Category } from '../types/domain.js'
 export interface Scan8004ListParams {
   category?: Category
   verified?: boolean
+  /** 8004scan's positive, one-based `page` value serialized as a string. */
   cursor?: string
   limit?: number
 }
@@ -53,8 +48,8 @@ const detailCache = new TtlCache<AgentDetail>(CACHE_TTL_MS.agentDetail)
 const circuit = new CircuitBreaker('scan8004')
 
 // ---------------------------------------------------------------------------
-// Real 8004scan wire shapes (zod) — field names as returned by the live API,
-// confirmed via GET /openapi.json + a live GET /api/v1/agents probe.
+// Real 8004scan public API wire shapes (zod), confirmed against live
+// `/api/v1/public/agents` and `/api/v1/public/agents/{chainId}/{tokenId}`.
 // ---------------------------------------------------------------------------
 
 const RawAgentSummarySchema = z.object({
@@ -83,10 +78,16 @@ const RawAgentSummarySchema = z.object({
 })
 
 const AgentSummaryListResponseSchema = z.object({
-  items: z.array(RawAgentSummarySchema),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
+  success: z.literal(true),
+  data: z.array(RawAgentSummarySchema),
+  meta: z.object({
+    pagination: z.object({
+      page: z.number().int().positive(),
+      limit: z.number().int().positive(),
+      total: z.number().int().nonnegative(),
+      hasMore: z.boolean(),
+    }),
+  }),
 })
 
 // Detail response is a strict superset of the summary fields — only the
@@ -100,6 +101,11 @@ const RawAgentDetailSchema = RawAgentSummarySchema.extend({
   is_active: z.boolean().nullable().optional(),
   tags: z.array(z.string()).default([]),
   categories: z.array(z.string()).default([]),
+})
+
+const AgentDetailResponseSchema = z.object({
+  success: z.literal(true),
+  data: RawAgentDetailSchema,
 })
 
 function mapCategoryHint(tags: string[], categories: string[]): Category | null {
@@ -161,18 +167,44 @@ function parseAgentRouteId(id: string): { chainId: string; tokenId: string } | n
 function buildQuery(params: Scan8004ListParams): string {
   const q = new URLSearchParams()
   q.set('limit', String(params.limit ?? 20))
-  if (params.cursor) q.set('offset', params.cursor)
-  if (params.verified !== undefined) q.set('is_endpoint_verified', String(params.verified))
-  // NOTE: `category` has no direct 8004scan filter (it's an AgentDesk
-  // `listings` concept) — best-effort maps to their free-text `categories`
-  // filter so a category query still narrows results server-side.
-  if (params.category) q.set('categories', params.category)
+  if (params.cursor) {
+    const page = Number(params.cursor)
+    if (!Number.isInteger(page) || page < 1) throw new Error('scan8004 listAgents: cursor must be a page number')
+    q.set('page', String(page))
+  }
+  // `category` and `verified` are AgentDesk concepts. The public 8004scan API
+  // does not document equivalent filters, so they must not be sent upstream.
   return q.toString()
 }
 
 function authHeaders(): Record<string, string> {
-  return env.SCAN8004_API_KEY ? { Authorization: `Bearer ${env.SCAN8004_API_KEY}` } : {}
+  return env.SCAN8004_API_KEY ? { 'X-API-Key': env.SCAN8004_API_KEY } : {}
 }
+
+function endpoint(path: string): string {
+  return `${env.SCAN8004_BASE_URL.replace(/\/+$/, '')}/${path}`
+}
+
+class AnonymousRequestLimitError extends Error {}
+
+class AnonymousRequestGate {
+  private requestTimes: number[] = []
+  acquire(now = Date.now()): void {
+    const minuteAgo = now - 60_000
+    const dayAgo = now - 86_400_000
+    this.requestTimes = this.requestTimes.filter((time) => time > dayAgo)
+    let recentRequests = 0
+    for (const time of this.requestTimes) {
+      if (time > minuteAgo) recentRequests += 1
+    }
+    if (recentRequests >= 10 || this.requestTimes.length >= 100) {
+      throw new AnonymousRequestLimitError('scan8004 anonymous request quota exhausted; retry after cache expiry')
+    }
+    this.requestTimes.push(now)
+  }
+}
+
+const anonymousRequestGate = new AnonymousRequestGate()
 
 /**
  * List agents from 8004scan (joined with our listings/proof_metrics
@@ -181,27 +213,28 @@ function authHeaders(): Record<string, string> {
 export async function listAgents(params: Scan8004ListParams): Promise<StaleAware<AgentSummary[]>> {
   const cacheKey = JSON.stringify(params)
 
-  if (!env.SCAN8004_API_KEY) {
-    const cached = listCache.get(cacheKey)
-    return { data: cached?.value ?? [], stale: Boolean(cached), fetchedAt: null }
+  const cached = listCache.get(cacheKey)
+  if (cached && listCache.isFresh(cacheKey)) {
+    return { data: cached.value, stale: false, fetchedAt: new Date(cached.fetchedAt).toISOString() }
   }
 
   try {
     circuit.assertCallAllowed()
+    if (!env.SCAN8004_API_KEY) anonymousRequestGate.acquire()
     const qs = buildQuery(params)
-    const res = await fetchWithTimeout(`${env.SCAN8004_BASE_URL}/api/v1/agents?${qs}`, {
+    const res = await fetchWithTimeout(endpoint(`agents?${qs}`), {
       headers: authHeaders(),
       timeoutMs: 5_000,
     })
     if (!res.ok) throw new Error(`scan8004 listAgents: HTTP ${res.status}`)
     const json = await res.json()
     const parsed = AgentSummaryListResponseSchema.parse(json)
-    const data = parsed.items.map(toAgentSummary)
+    const data = parsed.data.map(toAgentSummary)
     listCache.set(cacheKey, data)
     circuit.onSuccess()
     return { data, stale: false, fetchedAt: new Date().toISOString() }
   } catch (err) {
-    circuit.onFailure()
+    if (!(err instanceof AnonymousRequestLimitError)) circuit.onFailure()
     const cached = listCache.get(cacheKey)
     logger.warn(
       { err: err instanceof Error ? err.message : err, circuitState: circuit.getState() },
@@ -222,30 +255,35 @@ export async function getAgentDetail(agentRouteId: string): Promise<StaleAware<A
   const cacheKey = agentRouteId
   const ids = parseAgentRouteId(agentRouteId)
 
-  if (!env.SCAN8004_API_KEY || !ids) {
+  if (!ids) {
     const cached = detailCache.get(cacheKey)
     return { data: cached?.value ?? null, stale: Boolean(cached), fetchedAt: null }
+  }
+  const cached = detailCache.get(cacheKey)
+  if (cached && detailCache.isFresh(cacheKey)) {
+    return { data: cached.value, stale: false, fetchedAt: new Date(cached.fetchedAt).toISOString() }
   }
 
   try {
     circuit.assertCallAllowed()
-    const res = await fetchWithTimeout(
-      `${env.SCAN8004_BASE_URL}/api/v1/agents/${ids.chainId}/${ids.tokenId}`,
-      { headers: authHeaders(), timeoutMs: 5_000 },
-    )
+    if (!env.SCAN8004_API_KEY) anonymousRequestGate.acquire()
+    const res = await fetchWithTimeout(endpoint(`agents/${ids.chainId}/${ids.tokenId}`), {
+      headers: authHeaders(),
+      timeoutMs: 5_000,
+    })
     if (res.status === 404) {
       circuit.onSuccess()
       return { data: null, stale: false, fetchedAt: new Date().toISOString() }
     }
     if (!res.ok) throw new Error(`scan8004 getAgentDetail: HTTP ${res.status}`)
     const json = await res.json()
-    const parsed = RawAgentDetailSchema.parse(json)
-    const data = toAgentDetail(parsed)
+    const parsed = AgentDetailResponseSchema.parse(json)
+    const data = toAgentDetail(parsed.data)
     detailCache.set(cacheKey, data)
     circuit.onSuccess()
     return { data, stale: false, fetchedAt: new Date().toISOString() }
   } catch (err) {
-    circuit.onFailure()
+    if (!(err instanceof AnonymousRequestLimitError)) circuit.onFailure()
     const cached = detailCache.get(cacheKey)
     logger.warn(
       { err: err instanceof Error ? err.message : err, circuitState: circuit.getState() },

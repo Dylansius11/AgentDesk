@@ -53,7 +53,7 @@ export class TtlCache<T> {
   }
 }
 
-/** TTL budgets per ARCHITECTURE.md §6 / INTEGRATION.md I2. */
+/** TTL budgets per ARCHITECTURE.md §6 / INTEGRATION.md I2. Cache-first reads protect external API quotas. */
 export const CACHE_TTL_MS = {
   agentList: 60_000,
   agentDetail: 30_000,

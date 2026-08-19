@@ -6,11 +6,10 @@
  * mirrored in the repo-root `.env.example` — that's the doc-contract this
  * file must never violate (CLAUDE.md §4 env discipline).
  *
- * Everything is OPTIONAL at the type level for Phase A: no external API keys
- * are provisioned this session (8004scan / Altana / TermiX / RPCs / DB), and
- * the API must still boot + serve /api/health without them. Services that
- * need a given var check for it themselves and report "unconfigured" rather
- * than throwing at import time.
+ * Everything is OPTIONAL at the type level so the API can boot and serve
+ * `/api/health` without credentials. 8004scan's public API is usable
+ * anonymously; integrations that require a given value report
+ * "unconfigured" rather than throwing at import time.
  *
  * NEVER log KEEPER_ATTESTER_KEY, DEMO_AGENT_PRIVATE_KEY, or any private key
  * (CLAUDE.md §4). This file exposes them as values, not getters that log —
@@ -38,9 +37,9 @@ const EnvSchema = z.object({
   // Postgres (Supabase) — cache/derived views only, never authoritative (ERD.md §1)
   DATABASE_URL: z.string().min(1).optional(),
 
-  // 8004scan (AltLayer) — I2
+  // 8004scan public API — an API key raises the quota but is not required.
   SCAN8004_API_KEY: z.string().min(1).optional(),
-  SCAN8004_BASE_URL: z.string().url().default('https://api.8004scan.io'),
+  SCAN8004_BASE_URL: z.string().url().default('https://8004scan.io/api/v1/public'),
 
   // BSC RPC — I1/I3 chain reads/writes
   BSC_RPC_URL: z.string().url().optional(),
@@ -110,10 +109,10 @@ function loadEnv(): Env {
 
 export const env = loadEnv()
 
-/** True once every var a given integration needs is present. Never true this session (Phase A). */
+/** True once each integration has the configuration needed to operate. */
 export const integrationConfigured = {
   database: Boolean(env.DATABASE_URL),
-  scan8004: Boolean(env.SCAN8004_API_KEY),
+  scan8004: true, // public API works anonymously; a key only raises its quota.
   bscRpc: Boolean(env.BSC_RPC_URL),
   bscTestnetRpc: Boolean(env.BSC_TESTNET_RPC_URL),
   // Real @altananetwork/sdk needs no API key — readiness is "do we have a
