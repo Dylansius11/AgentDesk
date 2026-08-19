@@ -99,6 +99,19 @@ to run it or explicitly approve the agent running it).
 | `attested_tx`/`attested_block` | text/bigint | |
 | `raw` | jsonb | full event payload for audit page |
 
+### `keeper_state` — durable append-only indexer checkpoint
+
+| Column | Type | Notes |
+|---|---|---|
+| `chain_id`, `contract_address`, `stream` | int/text/text composite PK | checkpoint identity; one database may index several contracts and event streams |
+| `next_block` | bigint | **first not-yet-committed block**; it advances only in the transaction that inserts the range's proof rows |
+| `last_processed_block_hash` | text nullable | hash of `next_block - 1`; null only before a committed block |
+| `updated_at` | timestamptz | latest successful checkpoint transaction |
+
+The keeper never trusts in-process progress. Before a new range it verifies
+`last_processed_block_hash`; a mismatch or unavailable historical block fails
+the range visibly rather than skipping or rewriting append-only proof history.
+
 ### `proof_metrics` — derived per agent (recomputed by keeper; never hand-edited)
 
 | Column | Type | Notes |
@@ -206,13 +219,17 @@ Key cardinalities: 1 agent → 0..1 listing (unlisted agents appear only in 8004
 | Writer | Trigger | Action |
 |---|---|---|
 | api (read-through) | request + stale cache | refresh `agents` from 8004scan (I2) |
-| keeper indexer | ProofLedger events (block poll) | **Wired 2026-08-17.** insert `proof_records` (both `kind='decision'` and `kind='outcome'` rows, idempotent via `onConflictDoNothing`) — additive alongside the pre-existing in-memory `decision-store.ts` mirror the attester's unresolved-lookup still reads |
+| keeper indexer | ProofLedger events (finalized block poll) | inserts `proof_records` (both `kind='decision'` and `kind='outcome'` rows, idempotent via `onConflictDoNothing`) and advances `keeper_state.next_block` in **one DB transaction**; `next_block` is the first uncommitted block. Every tick replays a bounded committed overlap, verifies the stored prior-block hash, and compares replay event IDs/counts with persisted rows; mismatches are reported without deleting append-only history |
 | keeper attester | decision deadline passed | resolve outcome → `attestOutcome` tx → **Wired 2026-08-17.** insert outcome row immediately (same idempotent helper as the indexer) → enqueue metrics job |
 | keeper metrics job | after any attest / hourly | recompute `proof_metrics` **from on-chain rows only** |
 | api jobs service | escrow events (poll/webhook) | update `jobs.status`, insert `receipts` |
 | keeper session watcher | Keystore events | update `sessions` (revocation/expiry) |
 
-**Anti-drift:** daily reconciliation job compares latest on-chain record id per agent vs DB max(id); mismatch → alert + backfill from chain. DB is always allowed to be *behind*, never *ahead or wrong*.
+**Anti-drift:** every indexer tick replays its bounded committed overlap and
+compares its event IDs/count against `proof_records`; mismatch → alert only,
+never deletion or mutation of append-only history. The checkpoint hash guards
+against reorgs before any new range can commit. DB is always allowed to be
+*behind*, never silently advanced past unavailable history.
 
 ## 6. Changelog
 
@@ -221,3 +238,4 @@ Key cardinalities: 1 agent → 0..1 listing (unlisted agents appear only in 8004
 | 2026-08-16 | Initial ERD v1.0 | `docs: ERD` |
 | 2026-08-17 | Wired `POST/GET /v1/sessions*` + `POST /v1/sessions/:id/decisions` to real Postgres + real Chapel ProofLedger calls (self-hosted session enforcement, INTEGRATION.md I6 honesty note); closes the standalone-sessions-route gap flagged since Wave 1B | (pending PM commit) |
 | 2026-08-17 | Keeper indexer/attester wired to real `proof_records` writes; `apps/api`'s `proof.ts`/`metrics.ts` wired to real reads (`GET /v1/agents/:id/proof`, `/v1/leaderboard`, `/v1/verify/:agentId`, `/v1/stats`); `proof_records` PK widened to composite `(id, kind)` in schema — **live Supabase migration still pending, see PK note in §2** | (pending PM commit) |
+| 2026-08-19 | Added `keeper_state` durable checkpoint migration and transactionally coupled ProofLedger range commits; finalized-head indexing replays a bounded overlap with hash and persisted-row reconciliation evidence | (pending PM commit) |

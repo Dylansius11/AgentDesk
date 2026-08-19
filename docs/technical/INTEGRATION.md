@@ -176,7 +176,11 @@ DATABASE_URL=            # Supabase Postgres (pooled)
 SCAN8004_API_KEY=        # 8004scan Pro (hackathon tier)
 SCAN8004_BASE_URL=https://api.8004scan.io        # pin at wiring time
 BSC_RPC_URL=             # mainnet RPC (public OK, paid better)
-BSC_TESTNET_RPC_URL=     # Chapel
+BSC_TESTNET_RPC_URL=     # Chapel API reads only; keeper historical scans do not use this
+# Required primary Chapel archive-RPC secret for keeper historical indexing. Never commit a value.
+BSC_TESTNET_ARCHIVE_RPC_URL=
+# Optional secondary Chapel archive-RPC secret for transport failover. An explorer is diagnostics-only, never a source for checkpoint advancement.
+BSC_TESTNET_ARCHIVE_RPC_FALLBACK_URL=
 KEEPER_ATTESTER_KEY=     # ProofLedger ATTESTER role (secret; see SMART-CONTRACT.md)
 ALTANA_API_KEY=          # dead config — real SDK needs no key (I6/I14 correction). Kept for backward compat only.
 ALTANA_WALLET_ADDRESS=   # real Altana agent-owned wallet (I6) — public, informational
@@ -189,11 +193,14 @@ ERC8004_REGISTRY_ADDRESS=
 PROTOCOL_FEE_BPS=300     # 3%
 DEMO_AGENT_ADDRESS=      # self-hosted session enforcement signer (I6 honesty note) — public, informational
 DEMO_AGENT_PRIVATE_KEY=  # NEVER a real value in this file — lives only in gitignored apps/api/.env.demo-agent
-# apps/keeper (also reads DATABASE_URL / BSC_RPC_URL / BSC_TESTNET_RPC_URL /
+# apps/keeper (also reads DATABASE_URL / BSC_RPC_URL /
 # PROOFLEDGER_ADDRESS_* / KEEPER_ATTESTER_KEY above)
+# Chapel requires BSC_TESTNET_ARCHIVE_RPC_URL above; the fallback must also retain archive history.
 KEEPER_POLL_INTERVAL_MS=60000       # indexer/attester/session-watcher loop cadence (ARCHITECTURE.md §4.3)
 KEEPER_METRICS_INTERVAL_MS=3600000  # hourly proof_metrics safety-net sweep (ERD.md §5)
-PROOFLEDGER_DEPLOY_BLOCK=           # new (Wave 4): indexer's getContractEvents scan start block; mirrors exported/addresses.<network>.json's deployedAtBlock
+PROOFLEDGER_DEPLOY_BLOCK=           # ProofLedger deployment block; first possible event block
+KEEPER_FINALITY_BLOCKS=15           # commit only through latest minus this many blocks
+KEEPER_REPLAY_OVERLAP_BLOCKS=128    # bounded committed tail replayed and reconciled every tick
 # apps/web
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_DEMO_MODE=false

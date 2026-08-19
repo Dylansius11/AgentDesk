@@ -1,9 +1,10 @@
 /**
  * apps/keeper/src/db/schema.ts
  *
- * Literal structural mirror of the two tables the keeper writes to —
- * `agents` (FK anchor only) and `proof_records` — copied column-for-column
- * from `apps/api/src/db/schema.ts` (the ERD.md §2 source of truth).
+ * Literal structural mirror of the keeper's database tables — `agents` (FK
+ * anchor), `proof_records`, `keeper_state`, and `proof_metrics` — copied
+ * column-for-column from `apps/api/src/db/schema.ts` (the ERD.md §2 source
+ * of truth).
  *
  * Why a copy instead of an import: ARCHITECTURE.md §3's import rule is
  * explicit — "apps/* may import from packages/sdk and packages/contracts
@@ -13,10 +14,10 @@
  * long-term fix but is a separate, larger refactor than this task's scope
  * (it would also touch apps/api/src/services/session-store.ts and every
  * other schema consumer). Documented here instead of silently diverging:
- * if these two table shapes ever drift from apps/api/src/db/schema.ts,
- * that's a bug — keep them byte-for-byte identical until the sdk-hoist
- * happens. Proposed follow-up: move `agents`/`proofRecords` (and their
- * enums) into `packages/sdk/src/db/schema.ts`, re-export from both apps.
+ * if these table shapes ever drift from apps/api/src/db/schema.ts, that's a
+ * bug — keep them byte-for-byte identical until the sdk-hoist happens.
+ * Proposed follow-up: move shared table definitions and enums into
+ * `packages/sdk/src/db/schema.ts`, re-export from both apps.
  *
  * proof_records PK note (2026-08-17): `id` (on-chain record id) is NOT
  * globally unique alone — a decision and its eventual outcome are two
@@ -94,6 +95,25 @@ export const proofRecords = pgTable(
   (table) => [
     primaryKey({ columns: [table.id, table.kind] }),
     index('proof_records_agent_id_idx').on(table.agentId),
+  ],
+)
+
+// keeper_state — literal copy of apps/api/src/db/schema.ts. Its composite
+// identity lets one database safely track distinct contract event streams.
+export const keeperState = pgTable(
+  'keeper_state',
+  {
+    chainId: integer('chain_id').notNull(),
+    contractAddress: text('contract_address').notNull(),
+    stream: text('stream').notNull(),
+    // The first block not committed with its proof-record writes.
+    nextBlock: bigint('next_block', { mode: 'bigint' }).notNull(),
+    // Hash of next_block - 1; null only before the indexer has committed a block.
+    lastProcessedBlockHash: text('last_processed_block_hash'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.chainId, table.contractAddress, table.stream] }),
   ],
 )
 

@@ -23,6 +23,7 @@ import {
   createPublicClient,
   createWalletClient,
   defineChain,
+  fallback,
   http,
   type PublicClient,
   type WalletClient,
@@ -32,7 +33,11 @@ import { env, keeperConfigured } from '../env.js'
 
 export { proofLedgerAbi }
 
-const RPC_URL = env.BSC_RPC_URL ?? env.BSC_TESTNET_RPC_URL
+const RPC_URLS = [
+  env.BSC_TESTNET_ARCHIVE_RPC_URL,
+  env.BSC_TESTNET_ARCHIVE_RPC_FALLBACK_URL,
+  env.BSC_RPC_URL,
+].filter((url): url is string => Boolean(url))
 
 const PROOFLEDGER_ADDRESS = (env.PROOFLEDGER_ADDRESS_MAINNET ?? env.PROOFLEDGER_ADDRESS_TESTNET) as
   | Address
@@ -40,18 +45,27 @@ const PROOFLEDGER_ADDRESS = (env.PROOFLEDGER_ADDRESS_MAINNET ?? env.PROOFLEDGER_
 
 let chainPromise: Promise<Chain> | null = null
 
+function rpcTransport() {
+  if (RPC_URLS.length === 0) {
+    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_ARCHIVE_RPC_URL not configured')
+  }
+  return RPC_URLS.length === 1 ? http(RPC_URLS[0]) : fallback(RPC_URLS.map((url) => http(url)))
+}
+
 /** Resolves (and caches) a viem Chain object matching whatever network RPC_URL actually points at. */
 async function resolveChain(): Promise<Chain> {
-  if (!RPC_URL) throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_RPC_URL not configured')
+  if (RPC_URLS.length === 0) {
+    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_ARCHIVE_RPC_URL not configured')
+  }
   if (!chainPromise) {
     chainPromise = (async () => {
-      const bootstrap = createPublicClient({ transport: http(RPC_URL) })
+      const bootstrap = createPublicClient({ transport: rpcTransport() })
       const id = await bootstrap.getChainId()
       return defineChain({
         id,
         name: `bsc-chain-${id}`,
         nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-        rpcUrls: { default: { http: [RPC_URL] } },
+        rpcUrls: { default: { http: RPC_URLS } },
       })
     })()
   }
@@ -63,11 +77,11 @@ let publicClientPromise: Promise<PublicClient> | null = null
 /** Read-only client — used by both indexer (event scans) and attester (objective-source reads). */
 export async function getPublicClient(): Promise<PublicClient> {
   if (!keeperConfigured.chainRpc) {
-    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_RPC_URL not configured')
+    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_ARCHIVE_RPC_URL not configured')
   }
   if (!publicClientPromise) {
     publicClientPromise = resolveChain().then((chain) =>
-      createPublicClient({ chain, transport: http(RPC_URL) }),
+      createPublicClient({ chain, transport: rpcTransport() }),
     )
   }
   return publicClientPromise
@@ -76,7 +90,7 @@ export async function getPublicClient(): Promise<PublicClient> {
 /** Signing client for attestOutcome — the ONLY thing KEEPER_ATTESTER_KEY is used for. */
 export async function getWalletClient(): Promise<WalletClient> {
   if (!keeperConfigured.chainRpc) {
-    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_RPC_URL not configured')
+    throw new Error('chain: BSC_RPC_URL / BSC_TESTNET_ARCHIVE_RPC_URL not configured')
   }
   if (!keeperConfigured.attester) {
     throw new Error('chain: KEEPER_ATTESTER_KEY not configured')
@@ -84,7 +98,7 @@ export async function getWalletClient(): Promise<WalletClient> {
   const chain = await resolveChain()
   const privateKey = env.KEEPER_ATTESTER_KEY as `0x${string}`
   const account = privateKeyToAccount(privateKey)
-  return createWalletClient({ chain, account, transport: http(RPC_URL) })
+  return createWalletClient({ chain, account, transport: rpcTransport() })
 }
 
 export function getProofLedgerAddress(): Address {

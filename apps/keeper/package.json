@@ -11,7 +11,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "tsx --test src/jobs/indexer.test.ts"
   },
   "dependencies": {
     "@agentdesk/sdk": "workspace:*",

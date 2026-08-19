@@ -24,7 +24,10 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1).optional(),
 
   BSC_RPC_URL: z.string().url().optional(),
-  BSC_TESTNET_RPC_URL: z.string().url().optional(),
+  /** Required for a Chapel keeper: historical event scans must use archive-capable RPC. */
+  BSC_TESTNET_ARCHIVE_RPC_URL: z.string().url().optional(),
+  /** Optional archive-capable secondary endpoint for RPC transport failover. */
+  BSC_TESTNET_ARCHIVE_RPC_FALLBACK_URL: z.string().url().optional(),
 
   PROOFLEDGER_ADDRESS_MAINNET: z.string().min(1).optional(),
   PROOFLEDGER_ADDRESS_TESTNET: z.string().min(1).optional(),
@@ -40,6 +43,11 @@ const EnvSchema = z.object({
    * same reasoning as primitives.ts's uint256-as-string convention.
    */
   PROOFLEDGER_DEPLOY_BLOCK: z.string().optional(),
+
+  /** Do not index the mutable chain tip; commits stop this many blocks behind it. */
+  KEEPER_FINALITY_BLOCKS: z.coerce.number().int().min(0).default(15),
+  /** Re-query this bounded committed tail on every tick for reorg evidence. */
+  KEEPER_REPLAY_OVERLAP_BLOCKS: z.coerce.number().int().min(0).max(50_000).default(128),
 
   /** ProofLedger ATTESTER role key — the sole privileged secret we operate. Never logged. */
   KEEPER_ATTESTER_KEY: z.string().min(1).optional(),
@@ -64,7 +72,7 @@ export const env = loadEnv()
 
 export const keeperConfigured = {
   database: Boolean(env.DATABASE_URL),
-  chainRpc: Boolean(env.BSC_RPC_URL || env.BSC_TESTNET_RPC_URL),
+  chainRpc: Boolean(env.BSC_RPC_URL || env.BSC_TESTNET_ARCHIVE_RPC_URL),
   attester: Boolean(env.KEEPER_ATTESTER_KEY),
   proofLedger: Boolean(env.PROOFLEDGER_ADDRESS_MAINNET || env.PROOFLEDGER_ADDRESS_TESTNET),
 } as const

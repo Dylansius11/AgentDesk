@@ -12,10 +12,8 @@
  * hand-edited outside the keeper (ERD.md §5 sync rules) — the app layer
  * treats them as insert/read-only from proof_records onward.
  *
- * Migrations: not generated this session (structural scope only — see
- * apps/api/README / AGENT-TASKS.md Wave 1B). Run `pnpm --filter api
- * db:generate` once DATABASE_URL is provisioned to produce SQL migrations
- * from this file.
+ * Migrations: checked-in SQL migrations live in `apps/api/drizzle/`; apply
+ * them only through the deployment-controlled migration path.
  */
 import {
   bigint,
@@ -161,6 +159,27 @@ export const proofRecords = pgTable(
   (table) => [
     primaryKey({ columns: [table.id, table.kind] }),
     index('proof_records_agent_id_idx').on(table.agentId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// keeper_state — durable ProofLedger indexer checkpoints
+// ---------------------------------------------------------------------------
+
+export const keeperState = pgTable(
+  'keeper_state',
+  {
+    chainId: integer('chain_id').notNull(),
+    contractAddress: text('contract_address').notNull(),
+    stream: text('stream').notNull(),
+    // The first block that has not been committed with its proof-record writes.
+    nextBlock: bigint('next_block', { mode: 'bigint' }).notNull(),
+    // Hash of next_block - 1; null only before the indexer has committed a block.
+    lastProcessedBlockHash: text('last_processed_block_hash'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.chainId, table.contractAddress, table.stream] }),
   ],
 )
 

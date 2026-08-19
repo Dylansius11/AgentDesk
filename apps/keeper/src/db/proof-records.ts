@@ -18,7 +18,7 @@
  */
 import type { Address } from 'viem'
 import { logger } from '../logger.js'
-import { getDb, isDatabaseConfigured } from './client.js'
+import { type Database, getDb, isDatabaseConfigured } from './client.js'
 import { agents, proofRecords } from './schema.js'
 
 /**
@@ -72,13 +72,14 @@ function jsonSafe<T>(value: T): T {
  * a local FK anchor, distinct from a real 8004scan/registry sync, exactly
  * like session-store.ts's own 'agentdesk-demo-seed' marker.
  */
+type DbWriter = Pick<Database, 'insert'>
+
 async function ensureAgentAnchor(
+  db: DbWriter,
   agentId: bigint,
   ownerAddress: Address | undefined,
   chainId: ChainId,
 ) {
-  const db = getDb()
-  if (!db) return
   await db
     .insert(agents)
     .values({
@@ -90,13 +91,9 @@ async function ensureAgentAnchor(
     .onConflictDoNothing()
 }
 
-/** Called by jobs/indexer.ts for every real DecisionRegistered event it observes. */
-export async function insertDecisionRow(input: DecisionRowInput): Promise<boolean> {
-  if (!isDatabaseConfigured()) return false
-  const db = getDb()
-  if (!db) return false
-
-  await ensureAgentAnchor(input.agentId, undefined, input.chainId)
+/** Inserts a decision using the caller's transaction when atomicity is required. */
+export async function insertDecisionRowWithDb(db: DbWriter, input: DecisionRowInput): Promise<boolean> {
+  await ensureAgentAnchor(db, input.agentId, undefined, input.chainId)
 
   const inserted = await db
     .insert(proofRecords)
@@ -131,6 +128,7 @@ export async function insertDecisionRow(input: DecisionRowInput): Promise<boolea
   return wrote
 }
 
+
 /**
  * Called by jobs/indexer.ts (any observed OutcomeAttested event) AND by
  * jobs/attester.ts (immediately after its own successful submission) — both
@@ -149,12 +147,8 @@ export async function insertDecisionRow(input: DecisionRowInput): Promise<boolea
  * attempted for real, correctly shaped, and will start landing the moment
  * the migration is applied, no code change required.
  */
-export async function insertOutcomeRow(input: OutcomeRowInput): Promise<boolean> {
-  if (!isDatabaseConfigured()) return false
-  const db = getDb()
-  if (!db) return false
-
-  await ensureAgentAnchor(input.agentId, undefined, input.chainId)
+export async function insertOutcomeRowWithDb(db: DbWriter, input: OutcomeRowInput): Promise<boolean> {
+  await ensureAgentAnchor(db, input.agentId, undefined, input.chainId)
 
   const inserted = await db
     .insert(proofRecords)
@@ -189,6 +183,13 @@ export async function insertOutcomeRow(input: OutcomeRowInput): Promise<boolean>
       : 'proof-records: outcome row insert skipped (already present, or PK migration pending — see file banner)',
   )
   return wrote
+}
+
+export async function insertOutcomeRow(input: OutcomeRowInput): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false
+  const db = getDb()
+  if (!db) return false
+  return insertOutcomeRowWithDb(db, input)
 }
 
 /** Diagnostics only — used by the reconciliation report, never authoritative for app logic. */
