@@ -104,7 +104,17 @@ Nothing below is fabricated data presented as real — everything is either clea
 - Components consume the shared `@agentdesk/sdk` fixtures client rather than importing ad-hoc mock files, which fixes the original seam violation.
 - The production HTTP/SSE `AgentDeskClient` adapter and runtime demo/live switch are still missing, so the deployed UI does not exercise the Hono API.
 - The latest `dev` merge intentionally reverted the Wave 13c style-token `/style` work; A0.2 is therefore not currently satisfied on this branch.
-- Publish/jobs history screens and a verified end-to-end Nina hire→dashboard→STOP run remain incomplete.
+- The local fixture-backed Nina journey now follows HealthGuard through hire → SDK dashboard stream → SDK revoke/STOP. Publish and jobs-history screens remain Phase B.
+
+### 6.1 Phase A acceptance boundary
+
+| Classification | Phase A evidence |
+|---|---|
+| **Closed in source and locally exercised** | Typed 12-agent fixtures; SDK-only web data seam; category/risk/price/verified marketplace filters; full fixture-backed profile and proof links; permission/config-consistent hire flow; HealthGuard dashboard stream/revoke through `FixturesAgentDeskClient`; verified-only sortable leaderboard with category/window controls; reduced-motion paths; 360–1440 responsive layout and 44px mobile targets. |
+| **Intentionally unsatisfied** | A0.2 `/style` tokens and F8 dark-default styling. The prior style-token wave was explicitly reverted; this phase does not silently restore it. |
+| **Manual acceptance only** | Lighthouse/hallway test, public-URL latency, walkthrough video, and live demo rehearsal. The repository cannot prove those human/deployment gates by source inspection. |
+
+Phase A credit stops at `apps/web` plus `packages/sdk` fixtures and `FixturesAgentDeskClient`. The Hono API, Supabase tables, ProofLedger, keeper, 8004scan, Altana, ERC-8183, x402, Agent Studio sellers, publish/claim, and the future HTTP/SSE client are Phase B even when their code already exists. Phase B must replace the client implementation; pages must not gain direct backend or chain calls.
 
 ---
 
