@@ -4,7 +4,9 @@ import type { Agent } from '@agentdesk/sdk'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { useAccount } from 'wagmi'
 import SiteNavbar from '@/components/site-navbar'
+import { ConnectWalletButton, shortenAddress } from '@/components/wallet/connect-wallet-button'
 import { client } from '@/lib/agentdesk-client'
 import styles from './hire-flow.module.css'
 
@@ -17,9 +19,6 @@ const DURATIONS: { id: Duration; label: string }[] = [
   { id: '3d', label: '3 days' },
   { id: '7d', label: '7 days' },
 ]
-
-/** Demo hirer wallet — this prototype has no wallet connect yet (Phase B), so every hire is confirmed from this fixed, obviously-fake address. */
-const DEMO_HIRER_ADDRESS = '0xf00df00df00df00df00df00df00df00df00df00d'
 
 function expiryLabel(duration: Duration): string {
   const days = duration === '24h' ? 1 : duration === '3d' ? 3 : 7
@@ -72,7 +71,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const [jobId, setJobId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
-
+  const { address, isConnected } = useAccount()
   // Real fixtures grant exactly one allowlist entry per agent — its plain-English
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
@@ -87,21 +86,23 @@ export default function HireFlow({ agent }: { agent: Agent }) {
 
   const risk = !allowPrimary || cap <= 25 ? 'Low' : cap >= 200 ? 'High' : 'Medium'
 
-  // step 2: rows auto-complete one by one with a satisfying stagger
+
+  // step 2: the two simulated rows (grant + fund) auto-complete with a stagger;
+  // the "Connect wallet" row is a real EIP-1193 connect, not a timer.
   useEffect(() => {
     if (step !== 2) return
     setAuthDone(0)
-    const timers = [0, 1, 2].map((i) => setTimeout(() => setAuthDone(i + 1), (i + 1) * 1000))
+    const timers = [0, 1].map((i) => setTimeout(() => setAuthDone(i + 1), (i + 1) * 1000))
     return () => timers.forEach(clearTimeout)
   }, [step])
-
   const showToast = (message: string) => {
     setToast(message)
     setTimeout(() => setToast(null), 3200)
   }
 
+  // Two on-chain steps are still fixtures-backed in Phase B (the real ERC-8183
+  // create → fund flow lands next); only wallet connect is live today.
   const authRows = [
-    'Connect wallet',
     'Grant limited access — exactly the limits above',
     `Fund escrow: $${escrow.toFixed(2)} (3 tasks + fee)`,
   ]
@@ -111,11 +112,15 @@ export default function HireFlow({ agent }: { agent: Agent }) {
       showToast('Select the action permission before continuing.')
       return
     }
+    if (!address) {
+      showToast('Connect your wallet first.')
+      return
+    }
     setSubmitting(true)
     try {
       const session = await client.hire({
         agentId: agent.id,
-        hirerAddress: DEMO_HIRER_ADDRESS,
+        hirerAddress: address,
         config: {
           amountUsd1: amount,
           spendCapUsd1: cap,
@@ -296,14 +301,28 @@ export default function HireFlow({ agent }: { agent: Agent }) {
             <div className={styles.stepBody}>
               <h1 className={styles.title}>Authorize.</h1>
               <p className={styles.sub}>
-                In the live version these run in your wallet. Here they simulate one by one.
+                Connect your wallet now. The grant and escrow steps are simulated until the live
+                ERC-8183 flow lands.
               </p>
 
               <div className={styles.authList}>
+                <div className={styles.authRow}>
+                  <span className={isConnected ? styles.authCheckDone : styles.authCheck}>
+                    {isConnected ? '✓' : 1}
+                  </span>
+                  {isConnected && address ? (
+                    <span className={styles.authLabelDone}>
+                      Wallet connected — {shortenAddress(address)}
+                    </span>
+                  ) : (
+                    <ConnectWalletButton className={styles.authConnect} />
+                  )}
+                </div>
+
                 {authRows.map((label, i) => (
                   <div className={styles.authRow} key={label}>
                     <span className={authDone > i ? styles.authCheckDone : styles.authCheck}>
-                      {authDone > i ? '✓' : i + 1}
+                      {authDone > i ? '✓' : i + 2}
                     </span>
                     <span className={authDone > i ? styles.authLabelDone : styles.authLabel}>
                       {label}
@@ -323,7 +342,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                 </button>
                 <button
                   className={styles.blackPill}
-                  disabled={authDone < 3}
+                  disabled={!isConnected || authDone < 2}
                   onClick={() => setStep(3)}
                   type="button"
                 >

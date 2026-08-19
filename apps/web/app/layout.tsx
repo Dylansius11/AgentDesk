@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import SmoothScroll from '@/components/smooth-scroll'
+import { WalletProvider } from '@/lib/wallet-provider'
 import 'lenis/dist/lenis.css'
 import './globals.css'
 
@@ -31,8 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        <SmoothScroll />
-        {children}
+        <WalletProvider>
+          <SmoothScroll />
+          {children}
+        </WalletProvider>
       </body>
     </html>
   )

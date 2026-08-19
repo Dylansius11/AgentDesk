@@ -404,6 +404,30 @@
   color: #000000;
 }
 
+.authConnect {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  background: #000000;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.authConnect:hover {
+  opacity: 0.85;
+}
+
+.authConnect:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+
 .summaryCard {
   display: flex;
   flex-direction: column;
