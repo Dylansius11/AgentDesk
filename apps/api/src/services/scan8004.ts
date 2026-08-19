@@ -122,6 +122,8 @@ function toAgentSummary(raw: z.infer<typeof RawAgentSummarySchema>): AgentSummar
     id: raw.agent_id,
     ownerAddress: raw.owner_address,
     chainId: raw.chain_id,
+    name: raw.name,
+    registeredAt: raw.created_at ?? null,
     // Only AgentDesk's own `listings` table (not yet joined here) can supply
     // category/tagline/riskLevel/status — never fabricated from 8004scan.
     category: null,

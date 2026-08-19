@@ -53,6 +53,10 @@ export interface AgentSummary {
   id: string
   ownerAddress: string
   chainId: number
+  /** ERC-8004 metadata name — identity only, NOT a marketplace listing name (listings are empty until publish). */
+  name: string | null
+  /** ERC-8004 registration time, best-effort from 8004scan `created_at`. */
+  registeredAt: string | null
   category: Category | null
   tagline: string | null
   riskLevel: RiskLevel | null
