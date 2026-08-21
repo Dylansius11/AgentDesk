@@ -302,8 +302,8 @@ export default function MarketplacePage({
               <div>
                 <p className={styles.liveHeading}>Live execution listings</p>
                 <p className={styles.liveCopy}>
-                  Each listing uses its own provider address and A2A endpoint. The local canary is
-                  for development-only deterministic deliveries.
+                  Each listing uses its own provider address and A2A endpoint. The current canary
+                  provides deterministic BSC testnet deliveries.
                 </p>
               </div>
               <div className={styles.liveGrid}>

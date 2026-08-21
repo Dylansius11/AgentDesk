@@ -4,8 +4,8 @@ import { isoAt } from '../helpers.js'
 const CANARY_PROVIDER = '0xcF20Ccb337bDda8586A94a4456e9c3485f0dc70f'
 
 /**
- * The sole live local-development listing. Its identity fields are fixture data;
- * its execution binding points at the independently proven ERC-8183 seller.
+ * The sole live testnet listing. Its identity fields are fixture data; its
+ * execution binding targets the independently proven ERC-8183 seller.
  */
 export const ERC8183_CANARY: Agent = {
   id: '8183',
@@ -15,9 +15,9 @@ export const ERC8183_CANARY: Agent = {
   capabilities: ['erc-8183', 'a2a', 'deterministic-delivery'],
 
   name: 'ERC-8183 Canary',
-  tagline: 'Live local escrow canary for deterministic deliveries',
+  tagline: 'Live BSC testnet escrow canary for deterministic deliveries',
   description:
-    'A local development seller that negotiates one deterministic task, then returns the normalized request and its SHA-256 digest. It does not trade, manage assets, or receive unrelated hires.',
+    'A public testnet seller that negotiates one deterministic task, then returns the normalized request and its SHA-256 digest. It does not trade, manage assets, or receive unrelated hires.',
   category: 'grid',
   riskLevel: 'low',
   pricePerTaskUsd1: 0.1,
@@ -27,7 +27,7 @@ export const ERC8183_CANARY: Agent = {
   claimedAt: null,
   execution: {
     providerAddress: CANARY_PROVIDER,
-    negotiateEndpoint: 'http://127.0.0.1:9000/erc8183',
+    negotiateEndpoint: 'https://canary-seller-production.up.railway.app/erc8183',
   },
 
   trustPanel: {
@@ -35,7 +35,7 @@ export const ERC8183_CANARY: Agent = {
       {
         protocol: 'ERC-8183',
         action: 'deliver',
-        market: 'local',
+        market: 'BSC testnet',
         label: 'Normalize the approved task and return its SHA-256 digest - nothing else',
       },
     ],

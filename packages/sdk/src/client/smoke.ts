@@ -45,8 +45,9 @@ async function main(): Promise<void> {
   assert(
     liveExecutionAgents.length === 1 &&
       liveExecutionAgents[0]?.name === 'ERC-8183 Canary' &&
-      liveExecutionAgents[0].execution?.negotiateEndpoint === 'http://127.0.0.1:9000/erc8183',
-    'only the ERC-8183 Canary selects the local live seller binding',
+      liveExecutionAgents[0].execution?.negotiateEndpoint ===
+        'https://canary-seller-production.up.railway.app/erc8183',
+    'only the ERC-8183 Canary selects the public live seller binding',
   )
 
   console.log('\n[smoke] getAgents() - filtered + sorted')
