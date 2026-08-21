@@ -1,0 +1,12 @@
+# agent/ sub-project — local state ignored from version control.
+# (.env.local + the keystore live at the workspace-root .studio/, covered by the
+# workspace .gitignore; these guard any stray .studio/ content under app/agent/.)
+.studio/wallets/
+.studio/audit-log.jsonl
+# Runtime deliverable storage (LocalStorageProvider writes erc8183-job-*.json here)
+.agent-data/
+
+# Python (also caught by workspace root gitignore; duplicated for clarity)
+__pycache__/
+*.py[cod]
+*.egg-info/

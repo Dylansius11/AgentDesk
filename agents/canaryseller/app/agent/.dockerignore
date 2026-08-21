@@ -1,0 +1,9 @@
+# Defense-in-depth: secrets and local state must never enter the image.
+# (.env.local is also stashed out of the packaging window by `bag deploy`;
+# wallet material reaches the runtime ONLY via Secrets Manager injection.)
+.venv/
+.env.local
+.studio/
+__pycache__/
+*.pyc
+*.egg-info/

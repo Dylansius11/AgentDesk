@@ -1,0 +1,190 @@
+/* Proof band — the page's single inverted section, a full viewport tall.
+ * Pulled up over the scrollytelling runway's cover segment: it rises from the
+ * viewport bottom and covers the pinned scene before the sticky releases. */
+.band {
+  position: relative;
+  z-index: 10;
+  margin-top: -100vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: svh fallback for mobile browser chrome */
+  margin-top: -100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  background: #000000;
+  color: #ffffff;
+  padding: 72px 0;
+  scroll-margin-top: 80px;
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.eyebrowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.heading {
+  margin: 16px 0 0;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #ffffff;
+}
+
+.elsewhereCard {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 28px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+}
+
+.elsewhereLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.elsewhereLine {
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.statement {
+  margin: 0;
+  max-width: 460px;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.statement em {
+  font-style: normal;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.diagram {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 32px;
+  padding-left: 4px;
+}
+
+.node {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.nodeDot {
+  position: relative;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+/* vertical connector behind the dots */
+.diagram::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 28px;
+  left: 7.5px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.nodeBody {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nodeLabel {
+  font-size: 15px;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.nodeTime {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.nodeResult {
+  padding: 5px 12px;
+  background: #ffffff;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+.nodeArrow {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .band {
+    padding: 120px 0;
+  }
+
+  .split {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 80px;
+  }
+
+  .left {
+    flex: 1;
+  }
+
+  .right {
+    flex: 1;
+    padding-top: 44px;
+  }
+
+  .elsewhereCard {
+    margin-top: 36px;
+  }
+}

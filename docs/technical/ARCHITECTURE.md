@@ -86,7 +86,7 @@ agentdesk/
 │   └── contracts/              # Foundry project → typechain/viem artifacts for ProofLedger
 │       ├── src/ProofLedger.sol
 │       ├── test/
-│       └── script/deploy.ts    # viem deploy scripts (BSC Chapel → mainnet)
+│       └── script/Deploy.s.sol # forge script, env-parameterized (anvil/Chapel/mainnet, same bytecode)
 ├── agents/                     # our 4 demo agents (bnb CLI scaffolds + Altana skills)
 │   ├── grid-goblin/
 │   ├── yield-shepherd/

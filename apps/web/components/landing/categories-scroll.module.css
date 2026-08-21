@@ -1,0 +1,206 @@
+/* Categories scrollytelling — sticky card + alternating scroll-driven statements */
+
+.outer {
+  scroll-margin-top: 80px;
+}
+
+.intro {
+  padding: 72px 0 16px;
+}
+
+/* steps + cover + release viewports: 4 statement steps, then a cover segment
+ * where the proof band slides over the pinned scene, then sticky release */
+.runway {
+  position: relative;
+  height: 600vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: svh fallback for mobile browser chrome */
+  height: 600svh;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: svh fallback for mobile browser chrome */
+  height: 100svh;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 96px 16px 24px;
+  box-sizing: border-box;
+}
+
+/* --- sticky card stack --- */
+
+.cardStack {
+  display: grid;
+  width: min(100%, 340px);
+  margin-top: 5vh;
+}
+
+.card {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardIndex {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  padding: 7px 14px;
+  background: #f4f4f6;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  white-space: nowrap;
+}
+
+.cardTitle {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #000000;
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 84px;
+}
+
+.cardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.cardHint {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.arrow {
+  display: inline-block;
+}
+
+/* --- alternating statements --- */
+
+.step {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 56%;
+  bottom: 6%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.stepIndex {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.stepStatement {
+  margin: 0;
+  font-size: clamp(1.6rem, 5.5vw, 2.25rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #000000;
+}
+
+@media (min-width: 768px) {
+  .intro {
+    padding: 120px 0 24px;
+  }
+
+  .stage {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px;
+  }
+
+  .cardStack {
+    width: 400px;
+    margin-top: 0;
+  }
+
+  .card {
+    padding: 32px;
+  }
+
+  .spark {
+    height: 120px;
+  }
+
+  .step {
+    top: 0;
+    bottom: 0;
+    width: 28%;
+  }
+
+  .stepLeft {
+    left: 32px;
+    right: auto;
+    text-align: left;
+  }
+
+  .stepRight {
+    left: auto;
+    right: 32px;
+    text-align: right;
+  }
+
+  .stepStatement {
+    font-size: clamp(1.75rem, 2.4vw, 2.6rem);
+  }
+}

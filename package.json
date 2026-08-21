@@ -1,0 +1,20 @@
+{
+  "name": "agentdesk",
+  "private": true,
+  "description": "AgentDesk — the marketplace for provably-skilled BNB Chain AI agents. Proof, not promises.",
+  "packageManager": "pnpm@11.4.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "fixtures:validate": "turbo run fixtures:validate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.4",
+    "turbo": "^2.5.0"
+  }
+}

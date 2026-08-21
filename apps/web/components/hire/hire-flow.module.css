@@ -1,0 +1,619 @@
+/* Hire flow — 3-step wizard card in the hero's B&W language */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 120px 16px 64px;
+  box-sizing: border-box;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 24px;
+  padding: 0 24px 32px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.progressTrack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.progressFill {
+  height: 100%;
+  background: #000000;
+  transform-origin: left;
+}
+
+.stepLabels {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.stepLabel {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.stepLabelActive {
+  color: #000000;
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.title {
+  margin: 8px 0 0;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #000000;
+}
+
+.sub {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.fieldLabel {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+/* --- step 1 controls --- */
+
+.amountRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.amountInput {
+  width: 140px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 400;
+  color: #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+.chipButton {
+  padding: 9px 14px;
+  background: #f4f4f6;
+  border: none;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+}
+
+.chipButton:hover {
+  background: #ebebef;
+}
+
+.capRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.capSlider {
+  flex: 1;
+  accent-color: #000000;
+  height: 20px;
+  cursor: pointer;
+}
+
+.capReadout {
+  min-width: 110px;
+  text-align: right;
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  padding: 9px 14px;
+  background: #f4f4f6;
+  border: none;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.pillActive {
+  background: #000000;
+  color: #ffffff;
+}
+
+.allowList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.allowRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  text-align: left;
+}
+
+.allowLocked {
+  cursor: default;
+  background: #fafafa;
+}
+
+.allowText {
+  font-size: 13px;
+  font-weight: 400;
+  color: #000000;
+  line-height: 1.45;
+}
+
+.allowLocked .allowText {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.lockedNote {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.lockedCaption {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.toggleTrack {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.knobOn {
+  transform: translateX(14px);
+}
+
+.toggleTrack:has(.knobOn) {
+  background: #000000;
+}
+
+.riskRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.riskRow .fieldLabel {
+  margin-top: 0;
+}
+
+.riskValue {
+  padding: 6px 14px;
+  background: #000000;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.sentencePreview,
+.sentence {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.sentencePreview {
+  padding: 14px 16px;
+  background: #f4f4f6;
+  border-radius: 14px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.blackPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: #000000;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.blackPill:hover {
+  opacity: 0.85;
+}
+
+.blackPill:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.ghostButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.ghostButton:hover {
+  border-color: rgba(0, 0, 0, 0.5);
+}
+
+/* --- step 2 --- */
+
+.authList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.authRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.authRow:last-child {
+  border-bottom: none;
+}
+
+.authCheck,
+.authCheckDone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.authCheck {
+  background: #f4f4f6;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.authCheckDone {
+  background: #000000;
+  color: #ffffff;
+}
+
+.authLabel {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.authLabelDone {
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.authConnect {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  background: #000000;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.authConnect:hover {
+  opacity: 0.85;
+}
+
+.authConnect:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.connectedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.disconnectButton {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: transparent;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.disconnectButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000000;
+}
+.balanceText {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: #f4f4f6;
+  border-radius: 16px;
+}
+
+.priceRows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.priceRows span:nth-child(even) {
+  font-weight: 500;
+  color: #000000;
+  text-align: right;
+}
+
+.txRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.txRow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.txHash {
+  overflow-wrap: anywhere;
+  color: #000000;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- success --- */
+
+.activeRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.activeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #000000;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.stopWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 8px;
+}
+
+.stopButton {
+  padding: 18px 64px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 9999px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #000000;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.stopButton:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.stopNote {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.confetti {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  pointer-events: none;
+}
+
+.confettiBit {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #000000;
+}
+
+.confettiGray {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* --- toast --- */
+
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 80;
+  max-width: 320px;
+  padding: 14px 18px;
+  background: #000000;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #ffffff;
+  line-height: 1.5;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: 140px 32px 96px;
+  }
+
+  .card {
+    padding: 0 40px 40px;
+  }
+}

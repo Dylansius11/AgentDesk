@@ -1,0 +1,86 @@
+/* Site footer — one hairline row, hero pill vocabulary */
+
+.footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 28px 0;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.brandBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #000000;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.navLink {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: #000000;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chip {
+  padding: 7px 14px;
+  background: #f4f4f6;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  white-space: nowrap;
+}
+
+.credit {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+}

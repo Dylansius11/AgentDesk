@@ -1,0 +1,435 @@
+/* Leaderboard — ranked table of verified agents */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- banner ---------- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-left: 4px solid #000000;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.75);
+  line-height: 1.5;
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #000000;
+}
+
+.bannerLink {
+  color: #000000;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.bannerLink:hover {
+  text-decoration: underline;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  padding: 9px 16px;
+  background: #f4f4f6;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.tab:hover {
+  background: #ebebef;
+}
+
+.tabActive,
+.tabActive:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.controlsRight {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.select {
+  min-height: 40px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  color: #000000;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+
+.windowPills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.toggleTrack {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.toggleOn .toggleTrack {
+  background: #000000;
+}
+
+.toggleOn .toggleKnob {
+  transform: translateX(14px);
+}
+
+/* ---------- table ---------- */
+
+.tableWrap {
+  margin-top: 32px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* header */
+
+.thRank {
+  width: 72px;
+}
+
+.thAgent {
+  width: auto;
+}
+
+.thNum {
+  width: 100px;
+  text-align: right;
+}
+
+.thAudit {
+  width: 72px;
+}
+
+.table th {
+  padding: 14px 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.table .thNum {
+  text-align: right;
+}
+
+.table .thAudit {
+  text-align: center;
+}
+
+/* rows */
+
+.row {
+  transition: background-color 0.15s ease;
+  cursor: default;
+}
+
+.row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.rowFirst {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.rowFirst:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #000000;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  vertical-align: middle;
+}
+
+/* rank chip */
+
+.tdRank {
+  text-align: center;
+}
+
+.rankChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank1 {
+  background: #000000;
+  color: #ffffff;
+}
+
+.rank2 {
+  background: #ffffff;
+  border: 1.5px solid #000000;
+  color: #000000;
+}
+
+.rank3 {
+  background: #e0e0e0;
+  color: #000000;
+}
+
+.rankN {
+  color: rgba(0, 0, 0, 0.5);
+  background: transparent;
+}
+
+.rankNa {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+/* agent cell */
+
+.agentLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.agentName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.verifiedPill {
+  padding: 3px 10px;
+  background: #000000;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.noProofPill {
+  padding: 3px 10px;
+  background: #f4f4f6;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+}
+
+/* numeric cells */
+
+.tdNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: #000000;
+}
+
+.catStatCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.catStatValue {
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.catStatLabel {
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* audit link */
+
+.tdAudit {
+  text-align: center;
+}
+
+.auditLink {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.auditLink:hover {
+  border-color: rgba(0, 0, 0, 0.4);
+  color: #000000;
+}
+
+/* ---------- empty state ---------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.resetPill {
+  padding: 10px 20px;
+  background: #000000;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ---------- desktop ---------- */
+
+@media (min-width: 768px) {
+  .controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 40px;
+  }
+
+  .tableWrap {
+    margin-top: 40px;
+  }
+}

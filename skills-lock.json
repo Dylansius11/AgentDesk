@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "bnbchain-mcp": {
+      "source": "bnb-chain/bnbchain-skills",
+      "sourceType": "github",
+      "skillPath": "skills/bnbchain-mcp-skill/SKILL.md",
+      "computedHash": "16581ac841e65b9f7a64de69883a28698335729f9692868fc260154e737c03f7"
+    },
+    "collect-fees": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-driver/skills/collect-fees/SKILL.md",
+      "computedHash": "cc312fca9cb3040dc80ad8383c507aab1899f8fc0f5d36cdbbdf36da6b2ff143"
+    },
+    "farming-planner": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-farming/skills/farming-planner/SKILL.md",
+      "computedHash": "14e1efe3929ba00e50e66aa8182d21042279181189a403233b5f89a98cc2c928"
+    },
+    "harvest-rewards": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-farming/skills/harvest-rewards/SKILL.md",
+      "computedHash": "fef7009dbefd08a5c2484635f437c7d23648ccf29f9adc52f0d49ccbd8d3aac4"
+    },
+    "hub-api-integration": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-hub/skills/hub-api-integration/SKILL.md",
+      "computedHash": "9af230296f1e0890d547763c2dce2775caf26920be468a848f868ad722f7a032"
+    },
+    "hub-swap-planner": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-hub/skills/hub-swap-planner/SKILL.md",
+      "computedHash": "a9cc20c6711cfeecd8b272f93650e754935ddd0c1b5d9b9d71e8e7af9c5bd3f0"
+    },
+    "liquidity-planner": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-driver/skills/liquidity-planner/SKILL.md",
+      "computedHash": "15f7fd85edf6499e4fdf560c6ce260f0e917ae8044247bc95ab239702a5b3087"
+    },
+    "swap-integration": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-driver/skills/swap-integration/SKILL.md",
+      "computedHash": "a419787865523e34cf2161116c28d434d7e9c8446a8a534d3d8924931783957b"
+    },
+    "swap-planner": {
+      "source": "pancakeswap/pancakeswap-ai",
+      "sourceType": "github",
+      "skillPath": "packages/plugins/pancakeswap-driver/skills/swap-planner/SKILL.md",
+      "computedHash": "482510d1e5bff34077a517d475656eedac5da20d25957c647aa869c6014aef2c"
+    }
+  }
+}

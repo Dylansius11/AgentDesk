@@ -1,0 +1,31 @@
+{
+  "name": "@agentdesk/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentDesk shared seam: zod schemas + TS types + mock fixtures for Agent, ProofRecord, HireSession, Category.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "fixtures:validate": "tsx src/validate.ts"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}
