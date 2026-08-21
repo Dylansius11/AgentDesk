@@ -1,17 +1,27 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { FaucetButton } from "@/components/wallet/faucet-button";
 import styles from "./site-navbar.module.css";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
+const LINKS = [
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/verify", label: "Verify" },
+  { href: "/publish", label: "Publish" },
+] as const;
+
 export default function SiteNavbar() {
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   // pick up the correct state on load (e.g. scroll restoration), then track
   useEffect(() => {
@@ -20,6 +30,8 @@ export default function SiteNavbar() {
   useMotionValueEvent(scrollY, "change", (value) => {
     setScrolled(value > 24);
   });
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <motion.header
@@ -41,23 +53,18 @@ export default function SiteNavbar() {
         </a>
       </div>
       <nav className={styles.navLinks} aria-label="Primary">
-        <a className={styles.navLink} href="/marketplace">
-          Marketplace
-        </a>
-        <a className={styles.navLink} href="/leaderboard">
-          Leaderboard
-        </a>
-        <a className={styles.navLink} href="/dashboard">
-          Dashboard
-        </a>
-        <a className={styles.navLink} href="/verify">
-          Verify
-        </a>
-        <a className={styles.navLink} href="/publish">
-          Publish
-        </a>
+        {LINKS.map((link) => (
+          <a
+            className={`${styles.navLink} ${isActive(link.href) ? styles.navLinkActive : ""}`}
+            href={link.href}
+            key={link.href}
+          >
+            {link.label}
+          </a>
+        ))}
       </nav>
       <div className={styles.navRight}>
+        <FaucetButton className={styles.faucetButton} />
         <ConnectWalletButton className={styles.walletButton} />
         <button className={styles.systemsButton} type="button">
           <span className={styles.systemsCircle}>

@@ -103,6 +103,11 @@
   background: #f0b90b;
 }
 
+.navLinkActive {
+  color: #0b0e11;
+  background: #f0b90b;
+}
+
 .systemsButton {
   display: inline-flex;
   align-items: center;
@@ -136,6 +141,34 @@
   opacity: 0.3;
   cursor: default;
 }
+.faucetButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.faucetButton:hover {
+  background: #f0b90b;
+  color: #0b0e11;
+  border-color: #f0b90b;
+}
+
+.faucetButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 
 
 .systemsCircle {
