@@ -16,15 +16,17 @@ other; this package imports nothing internal).
   `ProofRecord` that violates these cannot be constructed — zod throws.
   `Agent` layers on its own moat guard: `verified: true` is structurally
   impossible without non-null, on-chain-derived `metrics`.
-- `src/fixtures/` — 12 mock agent fixtures (3 per category, exactly 2
-  unverified), each with believable proof records, an equity curve, a Trust
-  Panel, and pricing, plus 2 sample `HireSession` fixtures. **Not the mock
-  API client** (that's a separate, downstream task) — just the data + the
-  schemas it must satisfy.
+- `src/fixtures/` — 12 simulated marketplace fixtures (3 per category,
+  exactly 2 unverified) plus one clearly labeled local ERC-8183 canary. The
+  canary is the only fixture with a live execution binding, so every other
+  listing remains simulated until it gains its own provider address and A2A
+  endpoint. Each fixture includes believable proof records, an equity curve,
+  a Trust Panel, and pricing, plus 2 sample `HireSession` fixtures. **Not the
+  mock API client** (that's a separate, downstream task) — just the data +
+  the schemas it must satisfy.
 - `src/validate.ts` — the `fixtures:validate` script: schema-validates every
-  fixture and checks the fixture-roster invariants (12 agents, 3/category, 2
-  unverified, unique ids). Fails loudly (nonzero exit, every issue printed)
-  on any drift.
+  fixture and checks the simulated-roster invariants plus the single explicit
+  live binding. Fails loudly (nonzero exit, every issue printed) on any drift.
 
 ## Commands
 

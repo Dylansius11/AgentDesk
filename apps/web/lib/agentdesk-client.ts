@@ -13,14 +13,10 @@
  * HTTP mode currently serves real 8004scan identity; listing/proof/write
  * paths stay explicit defaults until the publish + ERC-8183 flows land.
  */
-import {
-  FixturesAgentDeskClient,
-  HttpAgentDeskClient,
-  type AgentDeskClient,
-} from '@agentdesk/sdk'
+import { type AgentDeskClient, FixturesAgentDeskClient, HttpAgentDeskClient } from '@agentdesk/sdk'
 
-const httpMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'http'
+export const isFixtureMode = process.env.NEXT_PUBLIC_DEMO_MODE !== 'http'
 
-export const client: AgentDeskClient = httpMode
-  ? new HttpAgentDeskClient(process.env.NEXT_PUBLIC_API_BASE_URL)
-  : new FixturesAgentDeskClient()
+export const client: AgentDeskClient = isFixtureMode
+  ? new FixturesAgentDeskClient()
+  : new HttpAgentDeskClient(process.env.NEXT_PUBLIC_API_BASE_URL)

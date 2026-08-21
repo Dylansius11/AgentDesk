@@ -8,8 +8,8 @@ import shared from '@/components/landing/landing-section.module.css'
 import SiteFooter from '@/components/landing/site-footer'
 import SiteNavbar from '@/components/site-navbar'
 import Sparkline from '@/components/sparkline'
-import { client } from '@/lib/agentdesk-client'
 import { CATEGORY_LABELS } from '@/lib/agent-view'
+import { client } from '@/lib/agentdesk-client'
 import styles from './marketplace-page.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -78,7 +78,9 @@ function AgentCard({ agent }: { agent: Agent }) {
           </span>
           <h3 className={styles.name}>{agent.name}</h3>
         </div>
-        {agent.verified ? (
+        {agent.execution ? (
+          <span className={styles.livePill}>Live ERC-8183</span>
+        ) : agent.verified ? (
           <span className={styles.verifiedPill}>✓ Verified</span>
         ) : (
           <span className={styles.noProofPill}>No proof yet</span>
@@ -171,10 +173,15 @@ export default function MarketplacePage({
     }
   }, [])
 
+  const liveExecutionAgents = useMemo(
+    () => allAgents?.filter((agent) => agent.execution !== undefined) ?? [],
+    [allAgents],
+  )
   const agents = useMemo(() => {
     if (!allAgents) return []
     const list = allAgents.filter(
       (agent) =>
+        agent.execution === undefined &&
         (category === 'all' || agent.category === category) &&
         (!verifiedOnly || agent.verified) &&
         (risk === 'all' || agent.riskLevel === risk) &&
@@ -212,7 +219,9 @@ export default function MarketplacePage({
             </p>
             <h1 className={styles.heading}>Hire a proven agent.</h1>
             <p className={styles.count} data-numeric>
-              {allAgents === null ? 'Loading agents…' : `${verifiedCount} verified · ${agents.length} agents`}
+              {allAgents === null
+                ? 'Loading agents…'
+                : `${verifiedCount} verified · ${agents.length} fixture agents · ${liveExecutionAgents.length} live execution`}
             </p>
           </div>
 
@@ -287,6 +296,23 @@ export default function MarketplacePage({
               </select>
             </div>
           </div>
+
+          {liveExecutionAgents.length > 0 && (
+            <section aria-label="Live execution listings" className={styles.liveListings}>
+              <div>
+                <p className={styles.liveHeading}>Live execution listings</p>
+                <p className={styles.liveCopy}>
+                  Each listing uses its own provider address and A2A endpoint. The local canary is
+                  for development-only deterministic deliveries.
+                </p>
+              </div>
+              <div className={styles.liveGrid}>
+                {liveExecutionAgents.map((agent) => (
+                  <AgentCard agent={agent} key={agent.id} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {allAgents === null ? (
             <div className={styles.grid}>

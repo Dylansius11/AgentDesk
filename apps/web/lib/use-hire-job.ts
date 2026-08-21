@@ -1,32 +1,21 @@
 'use client'
 
-/**
- * apps/web/lib/use-hire-job.ts
- *
- * The batched ERC-8183 buyer flow. One `hire()` call runs the full sequence
- * against the connected wallet (negotiate → createJob → registerJob →
- * setBudget → approve → fund), reporting each tx hash + the on-chain jobId.
- *
- * Honest scope: this drives the real on-chain create→fund (5 txs), which is
- * what "Fund escrow" becomes. True single-tx batching (multicall) is a later
- * optimization — the contract exposes these as separate calls, and
- * `registerJob` lives on a different contract (the router), so it can't be
- * folded into one contract call without a multicall helper.
- *
- * Requires: a connected wallet (the buyer), a real seller's provider address
- * + A2A endpoint, and `$U` + tBNB in the buyer's wallet.
- */
-import { useCallback, useState } from 'react'
 import {
-  ERC8183_ADDRESSES,
+  type AgentExecution,
   agenticCommerceAbi,
   buildJobDescription,
+  ERC8183_ADDRESSES,
   erc20Abi,
   evaluatorRouterAbi,
-  negotiateWithSeller,
   type NegotiationEnvelope,
+  negotiateWithSeller,
 } from '@agentdesk/sdk'
-import { parseEther, type Address, type Hash } from 'viem'
+/**
+ * One guided ERC-8183 buyer flow. The connected buyer confirms five distinct
+ * EOA transactions: createJob, registerJob, setBudget, approve, and fund.
+ */
+import { useCallback, useState } from 'react'
+import { type Address, type Hash, parseEther, parseEventLogs } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 
 const DISPUTE_WINDOW_SEC = 900
@@ -34,23 +23,23 @@ const DEADLINE_SEC = 30 * 60
 const EMPTY_OPTS = '0x' as const
 
 export interface HireJobInput {
-  provider: Address
+  execution: AgentExecution
   task: string
   budgetU: string
-  /** Optional seller A2A endpoint (e.g. "http://127.0.0.1:9000/"). */
-  negotiateEndpoint?: string
 }
 
 export type HireStatus = 'idle' | 'negotiating' | 'signing' | 'done' | 'error'
+export type HireStage = 'negotiate' | 'create' | 'register' | 'budget' | 'approve' | 'fund' | null
 
 export interface HireJobState {
   status: HireStatus
+  stage: HireStage
   jobId: bigint | null
   txs: Hash[]
   error: string | null
 }
 
-const IDLE: HireJobState = { status: 'idle', jobId: null, txs: [], error: null }
+const IDLE: HireJobState = { status: 'idle', stage: null, jobId: null, txs: [], error: null }
 
 export function useHireJob() {
   const { data: walletClient } = useWalletClient()
@@ -58,110 +47,142 @@ export function useHireJob() {
   const [state, setState] = useState<HireJobState>(IDLE)
 
   const hire = useCallback(
-    async (input: HireJobInput) => {
-      if (!walletClient || !publicClient) {
-        setState({ ...IDLE, status: 'error', error: 'wallet not connected' })
-        return
+    async (input: HireJobInput): Promise<HireJobState> => {
+      if (!walletClient || !publicClient || !walletClient.account) {
+        const next = { ...IDLE, status: 'error' as const, error: 'wallet not connected' }
+        setState(next)
+        return next
       }
 
-      setState({ status: 'negotiating', jobId: null, txs: [], error: null })
+      const buyer = walletClient.account.address as Address
+      const provider = input.execution.providerAddress as Address
+      let current: HireJobState = {
+        status: 'negotiating',
+        stage: 'negotiate',
+        jobId: null,
+        txs: [],
+        error: null,
+      }
+      const report = (next: HireJobState): HireJobState => {
+        current = next
+        setState(next)
+        return next
+      }
+      const reportTransaction = (
+        stage: Exclude<HireStage, 'negotiate' | null>,
+        hash: Hash,
+        jobId = current.jobId,
+      ) =>
+        report({
+          status: 'signing',
+          stage,
+          jobId,
+          txs: [...current.txs, hash],
+          error: null,
+        })
+      const waitForSuccess = async (hash: Hash) => {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash })
+        if (receipt.status !== 'success') throw new Error(`transaction ${hash} reverted`)
+        return receipt
+      }
 
       try {
-        // 1. Negotiate (optional) — anchor the seller's signed quote on-chain.
-        let description = input.task
-        if (input.negotiateEndpoint) {
-          const envelope: NegotiationEnvelope = await negotiateWithSeller(
-            input.negotiateEndpoint,
-            input.task,
-          )
-          description = buildJobDescription(envelope)
-        }
-
-        const budget = parseEther(input.budgetU)
-        const expiredAt = BigInt(
-          Math.floor(Date.now() / 1000) + DISPUTE_WINDOW_SEC + DEADLINE_SEC,
+        const envelope: NegotiationEnvelope = await negotiateWithSeller(
+          input.execution.negotiateEndpoint,
+          input.task,
         )
-        const txs: Hash[] = []
+        const description = buildJobDescription(envelope)
+        const budget = parseEther(input.budgetU)
+        const expiredAt = BigInt(Math.floor(Date.now() / 1000) + DISPUTE_WINDOW_SEC + DEADLINE_SEC)
 
-        setState({ status: 'signing', jobId: null, txs, error: null })
-
-        // 2. createJob → jobId (read back from jobCounter after mining).
+        report({ ...current, status: 'signing', stage: 'create' })
         const createHash = await walletClient.writeContract({
+          account: walletClient.account,
           address: ERC8183_ADDRESSES.commerce,
           abi: agenticCommerceAbi,
           functionName: 'createJob',
           args: [
-            input.provider,
+            provider,
             ERC8183_ADDRESSES.router,
             expiredAt,
             description,
             ERC8183_ADDRESSES.router,
           ],
         })
-        txs.push(createHash)
-        setState({ status: 'signing', jobId: null, txs, error: null })
-        await publicClient.waitForTransactionReceipt({ hash: createHash })
-
-        const jobId = await publicClient.readContract({
-          address: ERC8183_ADDRESSES.commerce,
+        reportTransaction('create', createHash)
+        const createReceipt = await waitForSuccess(createHash)
+        const jobCreated = parseEventLogs({
           abi: agenticCommerceAbi,
-          functionName: 'jobCounter',
-        })
+          eventName: 'JobCreated',
+          logs: createReceipt.logs.filter(
+            (log) => log.address.toLowerCase() === ERC8183_ADDRESSES.commerce.toLowerCase(),
+          ),
+        }).find(
+          (event) =>
+            event.args.client?.toLowerCase() === buyer.toLowerCase() &&
+            event.args.provider?.toLowerCase() === provider.toLowerCase(),
+        )
+        const jobId = jobCreated?.args.jobId
+        if (jobId === undefined) {
+          throw new Error(
+            'createJob receipt did not contain this buyer and provider JobCreated event',
+          )
+        }
 
-        // 3. registerJob (router) — bind the policy.
+        report({ ...current, stage: 'register', jobId })
         const registerHash = await walletClient.writeContract({
+          account: walletClient.account,
           address: ERC8183_ADDRESSES.router,
           abi: evaluatorRouterAbi,
           functionName: 'registerJob',
           args: [jobId, ERC8183_ADDRESSES.policy],
         })
-        txs.push(registerHash)
-        setState({ status: 'signing', jobId, txs, error: null })
-        await publicClient.waitForTransactionReceipt({ hash: registerHash })
+        reportTransaction('register', registerHash, jobId)
+        await waitForSuccess(registerHash)
 
-        // 4. setBudget (commerce).
+        report({ ...current, stage: 'budget', jobId })
         const budgetHash = await walletClient.writeContract({
+          account: walletClient.account,
           address: ERC8183_ADDRESSES.commerce,
           abi: agenticCommerceAbi,
           functionName: 'setBudget',
           args: [jobId, budget, EMPTY_OPTS],
         })
-        txs.push(budgetHash)
-        setState({ status: 'signing', jobId, txs, error: null })
-        await publicClient.waitForTransactionReceipt({ hash: budgetHash })
+        reportTransaction('budget', budgetHash, jobId)
+        await waitForSuccess(budgetHash)
 
-        // 5. approve $U → fund (commerce pulls the escrow).
+        report({ ...current, stage: 'approve', jobId })
         const approveHash = await walletClient.writeContract({
+          account: walletClient.account,
           address: ERC8183_ADDRESSES.usdToken,
           abi: erc20Abi,
           functionName: 'approve',
           args: [ERC8183_ADDRESSES.commerce, budget],
         })
-        txs.push(approveHash)
-        setState({ status: 'signing', jobId, txs, error: null })
-        await publicClient.waitForTransactionReceipt({ hash: approveHash })
+        reportTransaction('approve', approveHash, jobId)
+        await waitForSuccess(approveHash)
 
+        report({ ...current, stage: 'fund', jobId })
         const fundHash = await walletClient.writeContract({
+          account: walletClient.account,
           address: ERC8183_ADDRESSES.commerce,
           abi: agenticCommerceAbi,
           functionName: 'fund',
           args: [jobId, budget, EMPTY_OPTS],
         })
-        txs.push(fundHash)
-        setState({ status: 'signing', jobId, txs, error: null })
-        await publicClient.waitForTransactionReceipt({ hash: fundHash })
+        reportTransaction('fund', fundHash, jobId)
+        await waitForSuccess(fundHash)
 
-        setState({ status: 'done', jobId, txs, error: null })
+        return report({ ...current, status: 'done', stage: 'fund', jobId, error: null })
       } catch (error) {
-        setState({
+        return report({
+          ...current,
           status: 'error',
-          jobId: state.jobId,
-          txs: state.txs,
           error: error instanceof Error ? error.message : 'hire failed',
         })
       }
     },
-    [walletClient, publicClient, state.jobId, state.txs],
+    [publicClient, walletClient],
   )
 
   return { hire, state }

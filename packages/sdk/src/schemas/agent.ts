@@ -9,19 +9,34 @@
  * client (Phase B, task B1) both produce values that satisfy this same
  * schema (ARCHITECTURE.md §3 import rule: sdk is the shared seam).
  */
-import { z } from "zod";
-import { AddressSchema, AgentIdSchema, IsoDatetimeSchema, Usd1NonNegativeSchema } from "./primitives.js";
-import { CategorySchema } from "./category.js";
-import { TrustPanelSchema } from "./trust-panel.js";
-import { ProofMetricsSchema } from "./proof-metrics.js";
-import { EquityCurveSchema } from "./equity-curve.js";
-import { ProofRecordListSchema } from "./proof-record.js";
+import { z } from 'zod'
+import { CategorySchema } from './category.js'
+import { EquityCurveSchema } from './equity-curve.js'
+import {
+  AddressSchema,
+  AgentIdSchema,
+  IsoDatetimeSchema,
+  Usd1NonNegativeSchema,
+} from './primitives.js'
+import { ProofMetricsSchema } from './proof-metrics.js'
+import { ProofRecordListSchema } from './proof-record.js'
+import { TrustPanelSchema } from './trust-panel.js'
 
-export const RiskLevelSchema = z.enum(["low", "medium", "high"]);
-export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+export const RiskLevelSchema = z.enum(['low', 'medium', 'high'])
+export type RiskLevel = z.infer<typeof RiskLevelSchema>
 
-export const ListingStatusSchema = z.enum(["active", "paused", "delisted"]);
-export type ListingStatus = z.infer<typeof ListingStatusSchema>;
+export const ListingStatusSchema = z.enum(['active', 'paused', 'delisted'])
+export type ListingStatus = z.infer<typeof ListingStatusSchema>
+
+/**
+ * Optional live-hire details for a listing. Their absence means the listing
+ * remains fixture-only; consumers must never substitute another seller.
+ */
+export const AgentExecutionSchema = z.object({
+  providerAddress: AddressSchema,
+  negotiateEndpoint: z.string().url(),
+})
+export type AgentExecution = z.infer<typeof AgentExecutionSchema>
 
 export const AgentSchema = z
   .object({
@@ -44,6 +59,9 @@ export const AgentSchema = z
     claimedBy: AddressSchema.nullable(),
     claimedAt: IsoDatetimeSchema.nullable(),
 
+    // ── live ERC-8183 execution (optional per listing) ──
+    execution: AgentExecutionSchema.optional(),
+
     // ── Trust Panel (suggested default caps shown pre-hire) ──
     trustPanel: TrustPanelSchema,
 
@@ -61,27 +79,30 @@ export const AgentSchema = z
       // unverifiable number as if it were verified." An agent can only be
       // marked verified if it opted into the Proof Program AND has at least
       // one resolved on-chain record behind its metrics.
-      if (!agent.verified) return true;
-      return agent.proofProgram === true && agent.metrics !== null && agent.metrics.tasksResolved > 0;
+      if (!agent.verified) return true
+      return (
+        agent.proofProgram === true && agent.metrics !== null && agent.metrics.tasksResolved > 0
+      )
     },
     {
       message:
-        "Agent.verified=true requires proofProgram=true and non-null metrics with tasksResolved>0 - verified status must be derivable from proof records alone",
-      path: ["verified"],
+        'Agent.verified=true requires proofProgram=true and non-null metrics with tasksResolved>0 - verified status must be derivable from proof records alone',
+      path: ['verified'],
     },
   )
   .refine(
     (agent) => {
       // symmetric guard: no metrics/equity curve without at least one proof record to back them
-      if (agent.metrics !== null && agent.proofRecords.length === 0) return false;
-      if (agent.equityCurve.length > 0 && agent.proofRecords.length === 0) return false;
-      return true;
+      if (agent.metrics !== null && agent.proofRecords.length === 0) return false
+      if (agent.equityCurve.length > 0 && agent.proofRecords.length === 0) return false
+      return true
     },
     {
-      message: "metrics and equityCurve must be empty/null when there are zero proofRecords to derive them from",
-      path: ["proofRecords"],
+      message:
+        'metrics and equityCurve must be empty/null when there are zero proofRecords to derive them from',
+      path: ['proofRecords'],
     },
-  );
-export type Agent = z.infer<typeof AgentSchema>;
+  )
+export type Agent = z.infer<typeof AgentSchema>
 
-export const AgentListSchema = z.array(AgentSchema);
+export const AgentListSchema = z.array(AgentSchema)

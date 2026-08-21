@@ -133,6 +133,37 @@
   cursor: pointer;
 }
 
+.liveListings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px;
+  background: #f4f4f6;
+  border-radius: 20px;
+}
+
+.liveHeading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.liveCopy {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.liveGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
 /* ---------- agent card grid ---------- */
 
 .grid {
@@ -201,7 +232,6 @@
   font-weight: 600;
 }
 
-
 .name {
   margin: 0;
   font-size: 15px;
@@ -214,7 +244,8 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
-.verifiedPill {
+.verifiedPill,
+.livePill {
   padding: 5px 12px;
   background: #000000;
   border-radius: 9999px;

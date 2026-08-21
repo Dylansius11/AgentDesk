@@ -1,13 +1,14 @@
 'use client'
 
-import { ERC8183_ADDRESSES, erc20Abi, type Agent } from '@agentdesk/sdk'
+import { type Agent, ERC8183_ADDRESSES, erc20Abi } from '@agentdesk/sdk'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAccount, useBalance, useDisconnect, useReadContract } from 'wagmi'
 import SiteNavbar from '@/components/site-navbar'
 import { ConnectWalletButton, shortenAddress } from '@/components/wallet/connect-wallet-button'
-import { client } from '@/lib/agentdesk-client'
+import { client, isFixtureMode } from '@/lib/agentdesk-client'
+import { type HireStage, useHireJob } from '@/lib/use-hire-job'
 import styles from './hire-flow.module.css'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -19,6 +20,23 @@ const DURATIONS: { id: Duration; label: string }[] = [
   { id: '3d', label: '3 days' },
   { id: '7d', label: '7 days' },
 ]
+
+const LIVE_HIRE_STAGE_LABEL: Record<Exclude<HireStage, null>, string> = {
+  negotiate: 'Negotiating with seller',
+  create: 'Creating ERC-8183 job',
+  register: 'Registering evaluator policy',
+  budget: 'Setting escrow budget',
+  approve: 'Approving $U for escrow',
+  fund: 'Funding escrow',
+}
+
+const LIVE_HIRE_TRANSACTION_LABELS = [
+  'Create job',
+  'Register policy',
+  'Set budget',
+  'Approve $U',
+  'Fund escrow',
+] as const
 
 function expiryLabel(duration: Duration): string {
   const days = duration === '24h' ? 1 : duration === '3d' ? 3 : 7
@@ -72,12 +90,12 @@ export default function HireFlow({ agent }: { agent: Agent }) {
   const [cap, setCap] = useState(agent.trustPanel.spendCapUsd1)
   const [duration, setDuration] = useState<Duration>('7d')
   const [allowPrimary, setAllowPrimary] = useState(true)
-  const [authDone, setAuthDone] = useState(0)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
+  const { hire, state: hireState } = useHireJob()
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
   const usdBalance = useReadContract({
@@ -88,48 +106,46 @@ export default function HireFlow({ agent }: { agent: Agent }) {
     query: { enabled: isConnected },
   })
   const gasBalance = useBalance({ address, query: { enabled: isConnected } })
+  const isLiveHire = agent.execution !== undefined
+  const liveHireUnavailable = !isLiveHire && !isFixtureMode
+  const escrow = isLiveHire ? agent.pricePerTaskUsd1 : agent.pricePerTaskUsd1 * 3 * 1.03
   // Real fixtures grant exactly one allowlist entry per agent — its plain-English
   // label IS the "what it may do" sentence (CLAUDE.md §1: Nina test).
   const primaryEntry = agent.trustPanel.allowlist[0]
   const action = primaryEntry?.label ?? 'act on your behalf'
-  const actionSentence = action.replace(/\s+- nothing else$/, '').replace(/^./, (c) => c.toLowerCase())
-  const escrow = agent.pricePerTaskUsd1 * 3 * 1.03
+  const actionSentence = action
+    .replace(/\s+- nothing else$/, '')
+    .replace(/^./, (c) => c.toLowerCase())
 
   const sentence = useMemo(() => {
+    if (isLiveHire) {
+      return `${agent.name} may ${actionSentence} under the approved task context. It will fund one $${escrow.toFixed(2)} live ERC-8183 escrow job. The seller's negotiated terms define the deliverable. It cannot withdraw.`
+    }
     if (!allowPrimary) return 'Select the action permission to continue.'
     return `${agent.name} may ${actionSentence} with at most $${cap} per day, ${expiryLabel(duration)}. It cannot withdraw. You can stop it anytime.`
-  }, [actionSentence, allowPrimary, agent.name, cap, duration])
+  }, [actionSentence, allowPrimary, agent.name, cap, duration, escrow, isLiveHire])
 
   const risk = !allowPrimary || cap <= 25 ? 'Low' : cap >= 200 ? 'High' : 'Medium'
 
+  const authRows = isLiveHire
+    ? [
+        'Create the job, register its policy, and set its budget (3 confirmations)',
+        `Approve $U and fund escrow (2 confirmations, $${escrow.toFixed(2)})`,
+      ]
+    : [
+        'Grant limited access - exactly the limits above',
+        `Fund escrow: $${escrow.toFixed(2)} (3 tasks + fee)`,
+      ]
+  const authorizeCopy = isLiveHire
+    ? 'One guided action follows. Your wallet will show five separate confirmations; this bound seller negotiates before the first one.'
+    : isFixtureMode
+      ? 'Connect your wallet now. This listing has no live seller binding, so grant and escrow remain explicitly simulated.'
+      : 'This listing has no live ERC-8183 seller binding. Select a listing with its own binding or switch to fixture mode to simulate a hire.'
 
-  // Step 2 is strictly sequential: connect wallet FIRST, then the two
-  // simulated on-chain rows (grant + fund) auto-complete with a stagger.
-  // The grant/fund timers only start once the wallet is actually connected.
-  useEffect(() => {
-    if (step !== 2) return
-    setAuthDone(0)
-  }, [step])
-
-  useEffect(() => {
-    if (step !== 2 || !isConnected) {
-      setAuthDone(0)
-      return
-    }
-    const timers = [0, 1].map((i) => setTimeout(() => setAuthDone(i + 1), (i + 1) * 1000))
-    return () => timers.forEach(clearTimeout)
-  }, [step, isConnected])
   const showToast = (message: string) => {
     setToast(message)
     setTimeout(() => setToast(null), 3200)
   }
-
-  // Two on-chain steps are still fixtures-backed in Phase B (the real ERC-8183
-  // create → fund flow lands next); only wallet connect is live today.
-  const authRows = [
-    'Grant limited access - exactly the limits above',
-    `Fund escrow: $${escrow.toFixed(2)} (3 tasks + fee)`,
-  ]
 
   const confirmHire = async () => {
     if (!allowPrimary || !primaryEntry) {
@@ -140,8 +156,29 @@ export default function HireFlow({ agent }: { agent: Agent }) {
       showToast('Connect your wallet first.')
       return
     }
+    if (liveHireUnavailable) {
+      showToast(
+        'This listing has no live ERC-8183 seller binding. Select a listing with its own binding or switch to fixture mode.',
+      )
+      return
+    }
     setSubmitting(true)
     try {
+      if (agent.execution) {
+        const result = await hire({
+          execution: agent.execution,
+          task: `${agent.name} approved task:\n\n${sentence}\n\nTask context amount: $${amount}\nTask context cap: $${cap} per day\nDuration: ${duration}`,
+          budgetU: escrow.toFixed(2),
+        })
+        if (result.status !== 'done' || result.jobId === null) {
+          showToast(result.error ?? 'Could not fund the ERC-8183 escrow.')
+          return
+        }
+        setJobId(result.jobId.toString())
+        setSuccess(true)
+        return
+      }
+
       const session = await client.hire({
         agentId: agent.id,
         hirerAddress: address,
@@ -161,6 +198,39 @@ export default function HireFlow({ agent }: { agent: Agent }) {
       setSubmitting(false)
     }
   }
+
+  const liveProgressMessage =
+    hireState.status === 'error'
+      ? `Escrow flow stopped: ${hireState.error ?? 'unknown error'}`
+      : hireState.status === 'done'
+        ? 'Escrow funded. The provider now has the on-chain job.'
+        : hireState.stage
+          ? `${LIVE_HIRE_STAGE_LABEL[hireState.stage]}. Confirm this wallet action to continue.`
+          : null
+  const liveProgress =
+    isLiveHire && liveProgressMessage ? (
+      <div className={styles.summaryCard}>
+        <span className={styles.fieldLabel}>Live escrow progress</span>
+        <p className={styles.sub}>{liveProgressMessage}</p>
+        {hireState.txs.length > 0 && (
+          <div className={styles.txRows}>
+            {hireState.txs.map((hash, index) => (
+              <div className={styles.txRow} key={hash}>
+                <span>{LIVE_HIRE_TRANSACTION_LABELS[index] ?? `Transaction ${index + 1}`}</span>
+                <a
+                  className={styles.txHash}
+                  href={`https://testnet.bscscan.com/tx/${hash}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {hash}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ) : null
 
   return (
     <div className={styles.page}>
@@ -196,26 +266,39 @@ export default function HireFlow({ agent }: { agent: Agent }) {
               <span className={styles.activeRow}>
                 <span className={styles.activeDot} /> Active
               </span>
-              <h1 className={styles.title}>{agent.name} is working for you.</h1>
+              <h1 className={styles.title}>
+                {isLiveHire
+                  ? `${agent.name} escrow is funded.`
+                  : `${agent.name} is working for you.`}
+              </h1>
               <p className={styles.sentence}>{sentence}</p>
+              {liveProgress}
 
-              <div className={styles.stopWrap}>
-                <button
-                  className={styles.stopButton}
-                  onClick={async () => {
-                    if (jobId) await client.revoke(jobId)
-                    showToast('Session revoked - effective next block.')
-                  }}
-                  type="button"
-                >
-                  STOP
-                </button>
+              {isLiveHire ? (
                 <p className={styles.stopNote}>
-                  This is your stop button. It's always one tap away - effective immediately.
+                  On-chain cancellation is not wired in this escrow flow. Track the funded job and
+                  its provider through the transaction hashes above.
                 </p>
-              </div>
+              ) : (
+                <div className={styles.stopWrap}>
+                  <button
+                    className={styles.stopButton}
+                    onClick={async () => {
+                      if (jobId) await client.revoke(jobId)
+                      showToast('Session revoked - effective next block.')
+                    }}
+                    type="button"
+                  >
+                    STOP
+                  </button>
+                  <p className={styles.stopNote}>
+                    This is your stop button. It's always one tap away - effective immediately.
+                  </p>
+                </div>
+              )}
 
-              {jobId && (
+              {isLiveHire && jobId && <p className={styles.sub}>On-chain ERC-8183 job #{jobId}</p>}
+              {!isLiveHire && jobId && (
                 <Link
                   className={styles.blackPill}
                   href={`/dashboard?jobId=${encodeURIComponent(jobId)}&agentId=${encodeURIComponent(agent.id)}`}
@@ -228,9 +311,16 @@ export default function HireFlow({ agent }: { agent: Agent }) {
             <div className={styles.stepBody}>
               <h1 className={styles.title}>Set your limits.</h1>
               <p className={styles.sub}>Safety made friendly - plain sentences, exact caps.</p>
+              {isLiveHire && (
+                <p className={styles.sub}>
+                  This live seller receives these limits as task context. It funds one $$
+                  {escrow.toFixed(2)}
+                  escrow job and cannot manage assets or withdraw outside its negotiated scope.
+                </p>
+              )}
 
               <label className={styles.fieldLabel} htmlFor="amount">
-                Amount to manage
+                {isLiveHire ? 'Task context amount' : 'Amount to manage'}
               </label>
               <div className={styles.amountRow}>
                 <input
@@ -247,7 +337,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
               </div>
 
               <label className={styles.fieldLabel} htmlFor="cap">
-                Daily spend cap
+                {isLiveHire ? 'Task context cap' : 'Daily spend cap'}
               </label>
               <div className={styles.capRow}>
                 <input
@@ -324,10 +414,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
           ) : step === 2 ? (
             <div className={styles.stepBody}>
               <h1 className={styles.title}>Authorize.</h1>
-              <p className={styles.sub}>
-                Connect your wallet now. The grant and escrow steps are simulated until the live
-                ERC-8183 flow lands.
-              </p>
+              <p className={styles.sub}>{authorizeCopy}</p>
 
               <div className={styles.authList}>
                 <div className={styles.authRow}>
@@ -358,20 +445,8 @@ export default function HireFlow({ agent }: { agent: Agent }) {
 
                 {authRows.map((label, i) => (
                   <div className={styles.authRow} key={label}>
-                    <span
-                      className={
-                        isConnected && authDone > i ? styles.authCheckDone : styles.authCheck
-                      }
-                    >
-                      {isConnected && authDone > i ? '✓' : i + 2}
-                    </span>
-                    <span
-                      className={
-                        isConnected && authDone > i ? styles.authLabelDone : styles.authLabel
-                      }
-                    >
-                      {label}
-                    </span>
+                    <span className={styles.authCheck}>{i + 2}</span>
+                    <span className={styles.authLabel}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -387,7 +462,7 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                 </button>
                 <button
                   className={styles.blackPill}
-                  disabled={!isConnected || authDone < 2}
+                  disabled={!isConnected || liveHireUnavailable}
                   onClick={() => setStep(3)}
                   type="button"
                 >
@@ -401,16 +476,21 @@ export default function HireFlow({ agent }: { agent: Agent }) {
               <div className={styles.summaryCard}>
                 <p className={styles.sentence}>{sentence}</p>
                 <div className={styles.priceRows}>
-                  <span>Amount to manage</span>
+                  <span>{isLiveHire ? 'Task context amount' : 'Amount to manage'}</span>
                   <span>${amount}</span>
-                  <span>Price per completed task</span>
+                  <span>{isLiveHire ? 'Escrow budget' : 'Price per completed task'}</span>
                   <span>${agent.pricePerTaskUsd1.toFixed(2)}</span>
-                  <span>Escrow (3 tasks + 3% fee)</span>
+                  <span>
+                    {isLiveHire ? 'One ERC-8183 escrow job' : 'Escrow (3 tasks + 3% fee)'}
+                  </span>
                   <span>${escrow.toFixed(2)}</span>
                 </div>
               </div>
+              {liveProgress}
               <p className={styles.sub}>
-                Charged only when a task completes. Everything else stays in your wallet.
+                {isLiveHire
+                  ? 'The bound seller negotiates before the first wallet confirmation. Each required transaction and hash remains visible.'
+                  : 'Charged only when a task completes. Everything else stays in your wallet.'}
               </p>
 
               <div className={styles.actions}>
@@ -423,7 +503,11 @@ export default function HireFlow({ agent }: { agent: Agent }) {
                   onClick={confirmHire}
                   type="button"
                 >
-                  {submitting ? 'Starting…' : `Start ${agent.name} ▸`}
+                  {submitting
+                    ? 'Waiting for wallet…'
+                    : isLiveHire
+                      ? `Fund ${agent.name} with 5 confirmations ▸`
+                      : `Start ${agent.name} ▸`}
                 </button>
               </div>
             </div>
