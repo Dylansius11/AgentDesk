@@ -16,7 +16,7 @@ export const ERC8183_ADDRESSES = {
   /** EvaluatorRouter (registerJob + settle dispatch). */
   router: "0xD7d36D66d2F1B608A0F943f722D27e3744f66F25",
   /** OptimisticPolicy (dispute window + voting). */
-  policy: "0xd6a4217588F6B1F5657a92A3E94E6422aD771cEA",
+  policy: "0xd6a4217588F6B1F5657a92A3e94E6422aD771cEA",
   /** $U settlement token (ERC-20, 18 decimals). */
   usdToken: "0xc70B8741B8B07A6d61E54fd4B20f22Fa648E5565",
 } as const;
