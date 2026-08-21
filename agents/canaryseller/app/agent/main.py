@@ -252,6 +252,51 @@ async def _emit(send, start_message, body: bytes):
     await send({"type": "http.response.body", "body": new_body, "more_body": False})
 
 
+def _add_cors(app):
+    """Allow browser A2A clients on a different origin (local web :3000) to call
+    this seller directly. The A2A server sends no CORS headers by default, so a
+    buyer's browser negotiate/notify fetch would be blocked by the preflight.
+    """
+
+    async def _wrapped(scope, receive, send):
+        if scope["type"] != "http":
+            await app(scope, receive, send)
+            return
+
+        async def _send_cors(message):
+            if message["type"] == "http.response.start":
+                headers = [
+                    (k, v)
+                    for k, v in message.get("headers", [])
+                    if k.lower() != b"access-control-allow-origin"
+                ]
+                message["headers"] = headers + [
+                    (b"access-control-allow-origin", b"*"),
+                    (b"access-control-allow-methods", b"POST, GET, OPTIONS"),
+                    (b"access-control-allow-headers", b"content-type"),
+                ]
+            await send(message)
+
+        if scope["method"] == "OPTIONS":
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 204,
+                    "headers": [
+                        (b"access-control-allow-origin", b"*"),
+                        (b"access-control-allow-methods", b"POST, GET, OPTIONS"),
+                        (b"access-control-allow-headers", b"content-type"),
+                    ],
+                }
+            )
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+            return
+
+        await app(scope, receive, _send_cors)
+
+    return _wrapped
+
+
 if __name__ == "__main__":
     import uvicorn
     from bedrock_agentcore.runtime import build_a2a_app
@@ -261,7 +306,7 @@ if __name__ == "__main__":
     # identical to serve_a2a — we only interpose the error-input stripper before
     # serving.
     app = build_a2a_app(executor, agent_card, ping_handler=_ping_status)
-    app = _strip_error_input(app)
+    app = _add_cors(_strip_error_input(app))
 
     uvicorn.run(
         app,

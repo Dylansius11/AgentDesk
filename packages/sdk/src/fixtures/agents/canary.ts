@@ -4,8 +4,15 @@ import { isoAt } from '../helpers.js'
 const CANARY_PROVIDER = '0xcF20Ccb337bDda8586A94a4456e9c3485f0dc70f'
 
 /**
- * The sole live local-development listing. Its identity fields are fixture data;
- * its execution binding points at the independently proven ERC-8183 seller.
+ * Local development targets the seller's A2A message/send root. Deployed web
+ * sets NEXT_PUBLIC_ERC8183_CANARY_ENDPOINT to the seller's public Railway URL.
+ */
+export const ERC8183_CANARY_ENDPOINT =
+  process.env.NEXT_PUBLIC_ERC8183_CANARY_ENDPOINT ?? 'http://127.0.0.1:9000/'
+
+/**
+ * The sole live testnet listing. Its identity fields are fixture data; its
+ * execution binding targets the independently proven ERC-8183 seller.
  */
 export const ERC8183_CANARY: Agent = {
   id: '8183',
@@ -27,7 +34,7 @@ export const ERC8183_CANARY: Agent = {
   claimedAt: null,
   execution: {
     providerAddress: CANARY_PROVIDER,
-    negotiateEndpoint: 'http://127.0.0.1:9000/erc8183',
+    negotiateEndpoint: ERC8183_CANARY_ENDPOINT,
   },
 
   trustPanel: {
