@@ -53,6 +53,9 @@ export default function SiteNavbar() {
         <a className={styles.navLink} href="/verify">
           Verify
         </a>
+        <a className={styles.navLink} href="/publish">
+          Publish
+        </a>
       </nav>
       <div className={styles.navRight}>
         <ConnectWalletButton className={styles.walletButton} />
