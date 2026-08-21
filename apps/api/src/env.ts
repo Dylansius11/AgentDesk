@@ -29,6 +29,7 @@ import { z } from 'zod'
 
 dotenv.config({ path: '.env.demo-agent' })
 dotenv.config({ path: '.env.altana-agent' })
+dotenv.config({ path: '.env.faucet' })
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -89,6 +90,11 @@ const EnvSchema = z.object({
   DEMO_AGENT_ADDRESS: z.string().min(1).optional(),
   DEMO_AGENT_PRIVATE_KEY: z.string().min(1).optional(),
 
+  // Testnet faucet — a funded EOA that drips $U + tBNB to hirers (rate-limited).
+  // Key lives in gitignored apps/api/.env.faucet; address is safe to expose.
+  FAUCET_ADDRESS: z.string().min(1).optional(),
+  FAUCET_PRIVATE_KEY: z.string().min(1).optional(),
+
   // web origin, for CORS
   NEXT_PUBLIC_API_URL: z.string().url().optional(),
 })
@@ -121,4 +127,5 @@ export const integrationConfigured = {
   keeperAttester: Boolean(env.KEEPER_ATTESTER_KEY),
   termix: Boolean(env.TERMIX_API_KEY),
   demoAgentSigner: Boolean(env.DEMO_AGENT_PRIVATE_KEY),
+  faucet: Boolean(env.FAUCET_PRIVATE_KEY),
 } as const
