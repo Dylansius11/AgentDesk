@@ -17,8 +17,8 @@ other; this package imports nothing internal).
   `Agent` layers on its own moat guard: `verified: true` is structurally
   impossible without non-null, on-chain-derived `metrics`.
 - `src/fixtures/` — 12 simulated marketplace fixtures (3 per category,
-  exactly 2 unverified) plus one clearly labeled local ERC-8183 canary. The
-  canary is the only fixture with a live execution binding, so every other
+  exactly 2 unverified) plus one clearly labeled BSC testnet ERC-8183 canary.
+  The canary is the only fixture with a live execution binding, so every other
   listing remains simulated until it gains its own provider address and A2A
   endpoint. Each fixture includes believable proof records, an equity curve,
   a Trust Panel, and pricing, plus 2 sample `HireSession` fixtures. **Not the

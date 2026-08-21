@@ -265,10 +265,9 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app,
-        # AgentCore's A2A contract is 0.0.0.0:9000. Do not honor the HTTP
-        # protocol's $PORT=8080 convention here; AGENT_PORT is the local-dev /
-        # rendered-container override.
+        # AgentCore's A2A contract defaults to 9000 through AGENT_PORT.
+        # Railway injects PORT for its public service proxy.
         host=os.environ.get("AGENT_BIND_HOST") or "0.0.0.0",
-        port=int(os.environ.get("AGENT_PORT") or "9000"),
+        port=int(os.environ.get("PORT") or os.environ.get("AGENT_PORT") or "9000"),
         log_level="info",
     )
